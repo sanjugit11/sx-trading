@@ -1,0 +1,514 @@
+/* ==========================================================================
+   BLUME TOKEN PREMIUM DEFI DESIGN SYSTEM (VANILLA CSS)
+   ========================================================================== */
+
+:root {
+  /* Color Palette - HSL Tailored for DeFi Sleekness */
+  --bg-main: #06040a;
+  --bg-surface: rgba(18, 12, 28, 0.45);
+  --bg-surface-hover: rgba(26, 18, 40, 0.65);
+  
+  --primary: #c084fc;       /* Neon Lavender */
+  --primary-glow: rgba(192, 132, 252, 0.25);
+  --primary-solid: #a855f7;  /* Purple */
+  
+  --secondary: #22d3ee;     /* Cyan */
+  --secondary-glow: rgba(34, 211, 238, 0.25);
+  
+  --accent: #f43f5e;        /* Rose / Coral */
+  --accent-glow: rgba(244, 63, 94, 0.25);
+
+  --text-main: #f3f4f6;     /* Off-white */
+  --text-muted: #9ca3af;    /* Light Gray */
+  --text-dark: #6b7280;     /* Dark Gray */
+
+  --border: rgba(255, 255, 255, 0.08);
+  --border-active: rgba(192, 132, 252, 0.3);
+
+  --glow-radius: 12px;
+  --backdrop-blur: blur(16px) saturate(180%);
+}
+
+/* Global Reset & Base */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Outfit', sans-serif;
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary-solid) var(--bg-main);
+}
+
+body {
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Stunning Cyberpunk Glowing Background Ambient Orbs */
+body::before, body::after {
+  content: '';
+  position: fixed;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  z-index: -1;
+  filter: blur(140px);
+  pointer-events: none;
+  opacity: 0.35;
+}
+
+body::before {
+  top: -100px;
+  right: -50px;
+  background: radial-gradient(circle, var(--primary-solid) 0%, transparent 70%);
+}
+
+body::after {
+  bottom: -100px;
+  left: -50px;
+  background: radial-gradient(circle, var(--secondary) 0%, transparent 70%);
+}
+
+/* Webkit Scrollbar Customization */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-main);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--primary-solid);
+  border-radius: 4px;
+}
+
+/* Typography & Layouts */
+h1, h2, h3, h4 {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* Premium Navigation Bar */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 5%;
+  background: rgba(6, 4, 10, 0.7);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.logo-icon {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: #06040a;
+  box-shadow: 0 0 15px var(--primary-glow);
+}
+
+.logo-text {
+  font-size: 1.4rem;
+  font-weight: 800;
+  background: linear-gradient(to right, var(--primary), var(--secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.nav-wallet-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Premium Dashboard Containers */
+.dashboard-container {
+  max-width: 1300px;
+  margin: 2rem auto;
+  padding: 0 2rem;
+}
+
+/* Glassmorphism Panel Wrapper */
+.glass-panel {
+  background: var(--bg-surface);
+  backdrop-filter: var(--backdrop-blur);
+  -webkit-backdrop-filter: var(--backdrop-blur);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.75rem;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-panel:hover {
+  border-color: var(--border-active);
+  box-shadow: 0 12px 40px 0 var(--primary-glow);
+}
+
+/* Responsive Overview Grid */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+}
+
+/* Beautiful Premium Buttons */
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary-solid), #8b5cf6);
+  color: #fff;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 4px 15px rgba(168, 85, 247, 0.3);
+  transition: all 0.2s ease-in-out;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(168, 85, 247, 0.5);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--primary);
+  border: 1px solid var(--primary-solid);
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.btn-secondary:hover {
+  background: rgba(192, 132, 252, 0.08);
+  border-color: var(--primary);
+}
+
+.btn-max {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--primary);
+  border: none;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin-left: 0.5rem;
+}
+
+.btn-max:hover {
+  background: rgba(192, 132, 252, 0.2);
+}
+
+/* Ecosystem Tabs Navigator */
+.tab-navigator {
+  display: flex;
+  gap: 0.5rem;
+  background: rgba(18, 12, 28, 0.6);
+  border: 1px solid var(--border);
+  padding: 0.4rem;
+  border-radius: 12px;
+  margin-bottom: 2.5rem;
+  overflow-x: auto;
+}
+
+.tab-btn {
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  padding: 0.8rem 1.5rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tab-btn:hover {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.tab-btn.active {
+  color: #06040a;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  box-shadow: 0 4px 15px rgba(192, 132, 252, 0.3);
+  font-weight: 700;
+}
+
+/* Stat Card Style */
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(to bottom, var(--primary), transparent);
+}
+
+.stat-card.secondary::after {
+  background: linear-gradient(to bottom, var(--secondary), transparent);
+}
+
+.stat-label {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+}
+
+.stat-value {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: -0.01em;
+}
+
+.stat-sub {
+  font-size: 0.75rem;
+  color: var(--secondary);
+}
+
+.stat-sub.accent {
+  color: var(--accent);
+}
+
+/* Form Styles */
+.form-group {
+  margin-bottom: 1.25rem;
+}
+
+.form-label {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.input-container {
+  display: flex;
+  align-items: center;
+  background: rgba(18, 12, 28, 0.8);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  transition: all 0.2s ease;
+}
+
+.input-container:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 10px var(--primary-glow);
+}
+
+.form-input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #fff;
+  font-size: 1.15rem;
+  font-weight: 600;
+  width: 100%;
+}
+
+.token-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+/* Table Style for Stakes & Logs */
+.table-container {
+  overflow-x: auto;
+}
+
+.premium-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.premium-table th {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+}
+
+.premium-table td {
+  padding: 1.2rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  font-size: 0.95rem;
+}
+
+.badge {
+  padding: 0.25rem 0.6rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.badge-locked {
+  background: rgba(244, 63, 94, 0.15);
+  color: var(--accent);
+}
+
+.badge-claimable {
+  background: rgba(34, 211, 238, 0.15);
+  color: var(--secondary);
+}
+
+.badge-success {
+  background: rgba(168, 85, 247, 0.15);
+  color: var(--primary);
+}
+
+/* Swap Card Layout */
+.swap-card {
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.swap-arrows {
+  display: flex;
+  justify-content: center;
+  margin: 0.75rem 0;
+}
+
+.swap-arrow-btn {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--primary);
+  transition: all 0.2s ease;
+}
+
+.swap-arrow-btn:hover {
+  transform: rotate(180deg);
+  border-color: var(--primary);
+  box-shadow: 0 0 10px var(--primary-glow);
+}
+
+/* Staking Grid Layout */
+.staking-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 2rem;
+}
+
+@media (max-width: 900px) {
+  .staking-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.staking-card-btn {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+}
+
+.staking-card-btn:hover {
+  border-color: var(--primary);
+  background: rgba(192, 132, 252, 0.04);
+}
+
+.staking-card-btn.active {
+  border-color: var(--primary);
+  background: rgba(192, 132, 252, 0.08);
+  box-shadow: 0 0 15px var(--primary-glow);
+}
+
+/* Sandbox banner notification */
+.sandbox-banner {
+  background: linear-gradient(to right, rgba(168, 85, 247, 0.15), rgba(34, 211, 238, 0.15));
+  border: 1px solid var(--primary-glow);
+  padding: 0.75rem 2rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+/* Loading animations */
+.spinner {
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border-left-color: #fff;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.glow-logo {
+  animation: logo-glow-anim 3s ease-in-out infinite alternate;
+}
+
+@keyframes logo-glow-anim {
+  from {
+    filter: drop-shadow(0 0 2px var(--primary-glow));
+  }
+  to {
+    filter: drop-shadow(0 0 15px var(--primary));
+  }
+}
