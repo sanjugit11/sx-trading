@@ -1,0 +1,107 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id             String              @id @default(uuid())
+  address        String              @unique
+  kycStatus      String              @default("PENDING") // PENDING, APPROVED, REJECTED
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  wallet         Wallet?
+  perps          PerpetualPosition[]
+  loans          LendingLoan[]
+  spots          LeveragedSpot[]
+  hiddenOrders   HiddenOrder[]
+  auditLogs      AuditLog[]
+}
+
+model Wallet {
+  id         String   @id @default(uuid())
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [id])
+  address    String   @unique
+  balanceUSD Float    @default(0.0)
+  createdAt  DateTime @default(now())
+}
+
+model PerpetualPosition {
+  id           String   @id @default(uuid())
+  posId        Int      @unique
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  asset        String
+  leverage     Int
+  marginAmount Float
+  size         Float
+  isLong       Boolean
+  isCross      Boolean
+  isOpen       Boolean  @default(true)
+  entryPrice   Float
+  pnl          Float?
+  createdAt    DateTime @default(now())
+}
+
+model LendingLoan {
+  id               String   @id @default(uuid())
+  loanId           Int      @unique
+  userId           String
+  user             User     @relation(fields: [userId], references: [id])
+  borrowAsset      String
+  borrowAmount     Float
+  collateralAsset  String
+  collateralAmount Float
+  isOpen           Boolean  @default(true)
+  createdAt        DateTime @default(now())
+}
+
+model LeveragedSpot {
+  id               String   @id @default(uuid())
+  posId            Int      @unique
+  userId           String
+  user             User     @relation(fields: [userId], references: [id])
+  targetAsset      String
+  collateralAmount Float
+  leverage         Int
+  size             Float
+  isLimit          Boolean
+  triggerPrice     Float?
+  takeProfit       Float?
+  stopLoss         Float?
+  isPending        Boolean  @default(false)
+  isOpen           Boolean  @default(true)
+  createdAt        DateTime @default(now())
+}
+
+model HiddenOrder {
+  id         String   @id @default(uuid())
+  orderId    Int      @unique
+  userId     String
+  user         User     @relation(fields: [userId], references: [id])
+  commitment String
+  status     String   @default("PENDING") // PENDING, EXECUTED, CANCELLED
+  createdAt  DateTime @default(now())
+}
+
+model FundingHistory {
+  id           String   @id @default(uuid())
+  posId        Int
+  deduction    Float
+  indexAtApply Float
+  timestamp    DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String
+  details   String
+  ipAddress String
+  timestamp DateTime  @default(now())
+}

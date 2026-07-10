@@ -8,6 +8,9 @@
     "node": "hardhat node",
     "deploy:local": "hardhat run scripts/deploy.js --network localhost",
     "deploy:sepolia": "hardhat run scripts/deploy.js --network sepolia",
+    "deploy:hoodi": "hardhat run scripts/deploy.js --network hoodiTestnet",
+    "verify:hoodi": "hardhat run scripts/verify.js --network hoodiTestnet",
+    "verify:sepolia": "hardhat run scripts/verify.js --network sepolia",
     "mint:blx": "hardhat run scripts/mint-blx.js --network sepolia"
   },
   "dependencies": {

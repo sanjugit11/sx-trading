@@ -1,201 +1,413 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
+const { time } = require("@nomicfoundation/hardhat-network-helpers");
 
-describe("Blume Token Ecosystem Auditing Tests", function () {
-  let BLXToken, stBLXToken, BlumeStaking, BlumeVault, BlumeLP, MockUSDT, MockOracle;
-  let blx, stBlx, staking, vault, lp, usdt, oracle;
-  let owner, user1, user2, treasury;
+describe("SX Trading Suite - Ecosystem Test Suite", function () {
+    let owner, device1, device2, device3, user1, user2;
+    let usdt, mockCollateralToken, oracle;
+    let sxpt, sxlt, sxls, sxud, sxhop, sxadmin;
 
-  beforeEach(async function () {
-    [owner, user1, user2, treasury] = await ethers.getSigners();
+    beforeEach(async function () {
+        [owner, device1, device2, device3, user1, user2] = await ethers.getSigners();
 
-    // 1. Deploy BLX
-    BLXToken = await ethers.getContractFactory("BLXToken");
-    blx = await BLXToken.deploy();
-    await blx.waitForDeployment();
+        // 1. Deploy Mock USDT
+        const MockUSDT = await ethers.getContractFactory("MockUSDT");
+        usdt = await MockUSDT.deploy();
+        await usdt.waitForDeployment();
 
-    // 2. Deploy stBLX
-    stBLXToken = await ethers.getContractFactory("stBLXToken");
-    stBlx = await stBLXToken.deploy();
-    await stBlx.waitForDeployment();
+        // 2. Deploy Mock Collateral Token
+        const MockCollateral = await ethers.getContractFactory("MockUSDT");
+        mockCollateralToken = await MockCollateral.deploy();
+        await mockCollateralToken.waitForDeployment();
 
-    // 3. Deploy Staking
-    BlumeStaking = await ethers.getContractFactory("BlumeStaking");
-    staking = await BlumeStaking.deploy(await blx.getAddress(), await stBlx.getAddress());
-    await staking.waitForDeployment();
+        // 3. Deploy Mock Oracle
+        const MockOracle = await ethers.getContractFactory("MockOracle");
+        oracle = await MockOracle.deploy();
+        await oracle.waitForDeployment();
 
-    // Wire permissions
-    await stBlx.transferOwnership(await staking.getAddress());
-    await blx.addMinter(await staking.getAddress());
+        // Set initial Oracle prices (8 decimals, e.g. Collateral = $10, USDT = $1)
+        await oracle.setPrice(await mockCollateralToken.getAddress(), 10 * 10 ** 8);
+        await oracle.setPrice(await usdt.getAddress(), 1 * 10 ** 8);
 
-    // 4. Deploy MockUSDT
-    MockUSDT = await ethers.getContractFactory("MockUSDT");
-    usdt = await MockUSDT.deploy();
-    await usdt.waitForDeployment();
+        // 4. Deploy SXPT (Perpetual Trading)
+        const SXPT = await ethers.getContractFactory("SXPT");
+        sxpt = await SXPT.deploy(await usdt.getAddress(), await oracle.getAddress());
+        await sxpt.waitForDeployment();
 
-    // 5. Deploy MockOracle (1 BLX = 0.50 USDT. Decimals = 6. Price scaled = 500000)
-    MockOracle = await ethers.getContractFactory("MockOracle");
-    oracle = await MockOracle.deploy(500000, 6, "BLX / USDT price feed");
-    await oracle.waitForDeployment();
+        // 5. Deploy SXLT (Asset Lending)
+        const SXLT = await ethers.getContractFactory("SXLT");
+        sxlt = await SXLT.deploy(await oracle.getAddress());
+        await sxlt.waitForDeployment();
 
-    // 6. Deploy BlumeLP (with MockOracle Address)
-    BlumeLP = await ethers.getContractFactory("BlumeLP");
-    lp = await BlumeLP.deploy(await blx.getAddress(), await usdt.getAddress(), await oracle.getAddress());
-    await lp.waitForDeployment();
+        // 6. Deploy SXLS (Leveraged Spot)
+        const SXLS = await ethers.getContractFactory("SXLS");
+        sxls = await SXLS.deploy(await usdt.getAddress(), await oracle.getAddress());
+        await sxls.waitForDeployment();
 
-    // 7. Deploy BlumeVault (with Staking contract & Treasury Address)
-    BlumeVault = await ethers.getContractFactory("BlumeVault");
-    vault = await BlumeVault.deploy(await blx.getAddress(), await staking.getAddress(), treasury.address);
-    await vault.waitForDeployment();
+        // 7. Deploy SXUD (Unified Dashboard)
+        const SXUD = await ethers.getContractFactory("SXUD");
+        sxud = await SXUD.deploy(
+            await sxpt.getAddress(),
+            await sxlt.getAddress(),
+            await sxls.getAddress(),
+            await oracle.getAddress()
+        );
+        await sxud.waitForDeployment();
 
-    // Exclude users/pools from limits where necessary for setup
-    await blx.setExcludeFromLimits(await staking.getAddress(), true);
-    await blx.setExcludeFromLimits(await lp.getAddress(), true);
-    await blx.setExcludeFromLimits(await vault.getAddress(), true);
+        // 8. Deploy SXHOP (Hidden Orders)
+        const SXHOP = await ethers.getContractFactory("SXHOP");
+        sxhop = await SXHOP.deploy(await sxls.getAddress(), await usdt.getAddress());
+        await sxhop.waitForDeployment();
 
-    // Distribute BLX and USDT to test wallets
-    const fundAmountBLX = ethers.parseEther("20000"); // 20k BLX
-    const fundAmountUSDT = ethers.parseUnits("10000", 6); // 10k USDT
+        // 9. Deploy SXAdmin (MultiSig Admin)
+        const SXAdmin = await ethers.getContractFactory("SXAdmin");
+        sxadmin = await SXAdmin.deploy(
+            device1.address,
+            device2.address,
+            device3.address,
+            await sxpt.getAddress(),
+            await sxlt.getAddress(),
+            await sxls.getAddress()
+        );
+        await sxadmin.waitForDeployment();
 
-    await blx.transfer(user1.address, fundAmountBLX);
-    await blx.transfer(user2.address, fundAmountBLX);
-    await usdt.transfer(user1.address, fundAmountUSDT);
-    await usdt.transfer(user2.address, fundAmountUSDT);
-  });
+        // Transfer ownership of target contracts to SXAdmin so it can pause/control them
+        await sxpt.transferOwnership(await sxadmin.getAddress());
+        await sxlt.transferOwnership(await sxadmin.getAddress());
+        await sxls.transferOwnership(await sxadmin.getAddress());
 
-  describe("BLX Token Anti-Whale Controls", function () {
-    it("Should enforce maxTxAmount limit transfer caps on standard users", async function () {
-      const whaleTxAmount = ethers.parseEther("11000000"); // 11 million (Limit is 10 million)
-      
-      // Transfer to user2 should fail if exceeds 10M cap
-      await blx.transfer(user1.address, whaleTxAmount); // Owner is exempt from limit, transfer succeeds
+        // Mint and approve tokens for users
+        const mintAmount = ethers.parseEther("100000"); // 100,000 tokens
+        await usdt.mint(user1.address, mintAmount);
+        await usdt.mint(user2.address, mintAmount);
+        await mockCollateralToken.mint(user1.address, mintAmount);
+        await mockCollateralToken.mint(user2.address, mintAmount);
 
-      await expect(
-        blx.connect(user1).transfer(user2.address, whaleTxAmount)
-      ).to.be.revertedWith("BLX: Transfer amount exceeds maxTxAmount limit");
+        // Approve USDT and MockCollateral to contracts
+        await usdt.connect(user1).approve(await sxpt.getAddress(), mintAmount);
+        await usdt.connect(user1).approve(await sxlt.getAddress(), mintAmount);
+        await usdt.connect(user1).approve(await sxls.getAddress(), mintAmount);
+        await usdt.connect(user1).approve(await sxhop.getAddress(), mintAmount);
+        await mockCollateralToken.connect(user1).approve(await sxlt.getAddress(), mintAmount);
+
+        await usdt.connect(user2).approve(await sxpt.getAddress(), mintAmount);
+        await usdt.connect(user2).approve(await sxlt.getAddress(), mintAmount);
+        await usdt.connect(user2).approve(await sxls.getAddress(), mintAmount);
+        await usdt.connect(user2).approve(await sxhop.getAddress(), mintAmount);
+        await mockCollateralToken.connect(user2).approve(await sxlt.getAddress(), mintAmount);
     });
 
-    it("Should enforce maxWalletLimit caps", async function () {
-      await blx.updateLimits(ethers.parseEther("25000000"), ethers.parseEther("20000000"));
-      await blx.transfer(user1.address, ethers.parseEther("21000000"));
-      
-      // Should fail if a non-exempt transfer takes recipient wallet above 20 million.
-      await expect(
-        blx.connect(user1).transfer(user2.address, ethers.parseEther("20000001"))
-      ).to.be.revertedWith("BLX: Target wallet balance exceeds maxWalletLimit");
+    describe("1. Perpetual Trading (SXPT)", function () {
+        it("should open and close long/short positions with leverage", async function () {
+            const margin = ethers.parseEther("100");
+            const leverage = 10n;
+
+            await expect(sxpt.connect(user1).openPerpetualPosition(
+                await mockCollateralToken.getAddress(),
+                leverage,
+                margin,
+                true, // Long
+                false // Isolated
+            )).to.emit(sxpt, "PerpetualPositionOpened");
+
+            const details = await sxpt.positions(1);
+            expect(details.isOpen).to.be.true;
+            expect(details.size).to.equal(margin * leverage);
+
+            // Close position at same price (no PnL change)
+            await expect(sxpt.connect(user1).closePerpetualPosition(1))
+                .to.emit(sxpt, "PerpetualPositionClosed");
+        });
+
+        it("should reject invalid leverage levels", async function () {
+            const margin = ethers.parseEther("100");
+            await expect(sxpt.connect(user1).openPerpetualPosition(
+                await mockCollateralToken.getAddress(),
+                1n, // too low
+                margin,
+                true,
+                false
+            )).to.be.revertedWith("SXPT: leverage out of range");
+
+            await expect(sxpt.connect(user1).openPerpetualPosition(
+                await mockCollateralToken.getAddress(),
+                2000n, // too high
+                margin,
+                true,
+                false
+            )).to.be.revertedWith("SXPT: leverage out of range");
+        });
+
+        it("should apply funding rates based on long/short open interest skew", async function () {
+            const margin = ethers.parseEther("100");
+            const asset = await mockCollateralToken.getAddress();
+
+            // Open Long
+            await sxpt.connect(user1).openPerpetualPosition(asset, 10n, margin, true, false);
+            // Open Short (smaller size, creates skew)
+            await sxpt.connect(user2).openPerpetualPosition(asset, 5n, margin, false, false);
+
+            // Skew is positive (longs > shorts), so funding rate should be positive
+            const rate = await sxpt.getFundingRate(asset);
+            expect(rate).to.be.greaterThan(0n);
+
+            // Fast forward time to accrue funding
+            await time.increase(3600); // 1 hour
+
+            // Apply funding deduction on position 1
+            await expect(sxpt.connect(user1).applyFundingDeduction(1))
+                .to.emit(sxpt, "FundingRateApplied");
+
+            const detailsAfter = await sxpt.positions(1);
+            // Margin should be lower than initial deposit due to paying funding
+            expect(detailsAfter.marginAmount).to.be.lessThan(margin);
+        });
+
+        it("should enforce protection (no liquidation, capped loss) on positions", async function () {
+            const margin = ethers.parseEther("10");
+            const asset = await mockCollateralToken.getAddress();
+
+            await sxpt.connect(user1).openPerpetualPosition(asset, 100n, margin, true, false); // 100x leverage
+
+            // Set oracle price to crash (representing >100% loss)
+            // Initial Price of collateral = $10, drop to $5 (50% drop at 100x = 5000% loss)
+            await oracle.setPrice(asset, 5 * 10 ** 8);
+
+            // Close the position
+            // Even though the loss exceeds margin, the payout is protected (payout = 0, no deficit)
+            const tx = await sxpt.connect(user1).closePerpetualPosition(1);
+            const receipt = await tx.wait();
+            const closedEvent = receipt.logs
+                .map(log => sxpt.interface.parseLog(log))
+                .find(event => event && event.name === "PerpetualPositionClosed");
+
+            expect(closedEvent.args.payoutAmount).to.equal(0n);
+        });
     });
-  });
 
-  describe("Classic Staking Early Withdrawal Penalty", function () {
-    it("Should deduct a 15% penalty fee and forfeit rewards if unstaked early", async function () {
-      const stakeAmt = ethers.parseEther("1000");
-      await blx.connect(user1).approve(await staking.getAddress(), stakeAmt);
-      
-      // Index 1 represents 30 Days locking stake
-      await staking.connect(user1).stakeClassic(stakeAmt, 1);
+    describe("2. Asset Lending (SXLT)", function () {
+        it("should lend assets, borrow against collateral within 250% LTV, and repay loans", async function () {
+            const lendAmount = ethers.parseEther("5000");
+            const borrowAmount = ethers.parseEther("100");
+            const collateralAmount = ethers.parseEther("50"); // 50 collateral * $10 = $500 value (500% LTV, >=250% allowed)
 
-      // Fast forward time slightly (1 day, stake unlock is 30 days)
-      await ethers.provider.send("evm_increaseTime", [24 * 3600]);
-      await ethers.provider.send("evm_mine");
+            const usdtAddr = await usdt.getAddress();
+            const colAddr = await mockCollateralToken.getAddress();
 
-      const balBefore = await blx.balanceOf(user1.address);
-      const ownerBalBefore = await blx.balanceOf(owner.address);
+            // Lend USDT
+            await expect(sxlt.connect(user1).lendAssets(usdtAddr, lendAmount))
+                .to.emit(sxlt, "AssetLent");
 
-      // Perform early exit (should succeed but charge penalty)
-      await expect(staking.connect(user1).unstakeClassic(0)).to.emit(staking, "ClassicUnstaked");
+            // Borrow USDT using collateral
+            await expect(sxlt.connect(user2).borrowAssets(usdtAddr, borrowAmount, colAddr, collateralAmount))
+                .to.emit(sxlt, "LoanCreated");
 
-      const balAfter = await blx.balanceOf(user1.address);
-      const ownerBalAfter = await blx.balanceOf(owner.address);
+            // Verify pool rates
+            const interestRate = await sxlt.getInterestRate(usdtAddr);
+            expect(interestRate).to.be.greaterThan(0n);
 
-      const penaltyAmt = (stakeAmt * 1500n) / 10000n; // 15%
-      const principalReturned = stakeAmt - penaltyAmt;
+            const yieldRate = await sxlt.getLendingYield(usdtAddr);
+            expect(yieldRate).to.be.greaterThan(0n);
 
-      expect(balAfter - balBefore).to.equal(principalReturned);
-      expect(ownerBalAfter - ownerBalBefore).to.equal(penaltyAmt); // Penalty sent to owner
-    });
-  });
+            // Repay loan immediately (negligible interest)
+            await expect(sxlt.connect(user2).repayLoan(1, borrowAmount))
+                .to.emit(sxlt, "LoanRepaid");
+        });
 
-  describe("Liquidity Pool Oracle Protections", function () {
-    it("Should block swaps if reserves deviate too much from Oracle price feed", async function () {
-      // Add initial liquidity
-      const blxAdd = ethers.parseEther("5000");
-      const usdtAdd = ethers.parseUnits("2500", 6); // 2:1 ratio ($0.50 price)
-      
-      await blx.connect(user1).approve(await lp.getAddress(), blxAdd);
-      await usdt.connect(user1).approve(await lp.getAddress(), usdtAdd);
-      await lp.connect(user1).addLiquidity(blxAdd, usdtAdd);
+        it("should reject borrows violating the 250% LTV requirement", async function () {
+            const lendAmount = ethers.parseEther("5000");
+            const borrowAmount = ethers.parseEther("201"); // $201 worth
+            const collateralAmount = ethers.parseEther("50"); // 50 * $10 = $500 collateral (LTV ratio = 500 / 201 = 2.48, i.e. < 250%)
 
-      // Oracle price matches spot: 500000 (0.50)
-      await lp.validatePriceWithOracle(); // Should succeed
+            const usdtAddr = await usdt.getAddress();
+            const colAddr = await mockCollateralToken.getAddress();
 
-      // Simulate a manipulation attack by updating the oracle price to 1.00 USDT (100% difference)
-      await oracle.setPrice(1000000); 
+            await sxlt.connect(user1).lendAssets(usdtAddr, lendAmount);
 
-      // Attempting to swap should now revert due to deviation
-      const usdtSwap = ethers.parseUnits("100", 6);
-      await usdt.connect(user2).approve(await lp.getAddress(), usdtSwap);
-
-      await expect(
-        lp.connect(user2).swap(await usdt.getAddress(), usdtSwap, 0)
-      ).to.be.revertedWith("LP: Spot ratio deviates too much from Price Oracle");
-    });
-  });
-
-  describe("Advanced EIP-4626 Farming Vault", function () {
-    it("Should auto-stake underlying assets and compound rewards", async function () {
-      const depositAmt = ethers.parseEther("1000");
-      await blx.connect(user1).approve(await vault.getAddress(), depositAmt);
-
-      // Deposit
-      await vault.connect(user1).deposit(depositAmt, user1.address);
-
-      // Underlying BLX should be staked in BlumeStaking
-      expect(await staking.totalClassicStaked()).to.equal(depositAmt);
-
-      // Fast forward time to accrue rewards
-      await ethers.provider.send("evm_increaseTime", [10 * 24 * 3600]); // 10 days
-      await ethers.provider.send("evm_mine");
-
-      // Verify compound function claims rewards and adds them to backing assets
-      const totalAssetsBefore = await vault.totalAssets();
-      await vault.compound();
-      const totalAssetsAfter = await vault.totalAssets();
-
-      expect(totalAssetsAfter).to.be.gt(totalAssetsBefore); // Yield compounded successfully!
+            await expect(sxlt.connect(user2).borrowAssets(usdtAddr, borrowAmount, colAddr, collateralAmount))
+                .to.be.revertedWith("SXLT: insufficient collateral for 250% LTV");
+        });
     });
 
-    it("Should succeed on repeated vault withdrawals without locking funds", async function () {
-      const depositAmt = ethers.parseEther("1000");
-      await blx.connect(user1).approve(await vault.getAddress(), depositAmt);
-      await blx.connect(user2).approve(await vault.getAddress(), depositAmt);
+    describe("3. Leveraged Spot Trading (SXLS)", function () {
+        it("should open immediately for market order, update TP/SL, and trigger TP/SL limits", async function () {
+            const collateral = ethers.parseEther("100");
+            const asset = await mockCollateralToken.getAddress();
 
-      // Deposit from two different users
-      await vault.connect(user1).deposit(depositAmt, user1.address);
-      await vault.connect(user2).deposit(depositAmt, user2.address);
+            // Open market order
+            await expect(sxls.connect(user1).openLeveragedSpot(asset, collateral, 3n, false, 0))
+                .to.emit(sxls, "LeveragedSpotOpened");
 
-      // Fast forward time slightly
-      await ethers.provider.send("evm_increaseTime", [1 * 24 * 3600]);
-      await ethers.provider.send("evm_mine");
+            // Update TP and SL targets
+            await expect(sxls.connect(user1).updateTakeProfit(1, 15 * 10 ** 8))
+                .to.emit(sxls, "TakeProfitUpdated");
 
-      // User1 withdraws 500 BLX
-      const withdrawAmt = ethers.parseEther("500");
-      const user1BalBefore = await blx.balanceOf(user1.address);
-      await vault.connect(user1).withdraw(withdrawAmt, user1.address, user1.address);
-      const user1BalAfter = await blx.balanceOf(user1.address);
-      // expect user1 to receive 500 BLX (minus 0.5% fee = 497.5 BLX)
-      expect(user1BalAfter - user1BalBefore).to.equal(ethers.parseEther("497.5"));
+            await expect(sxls.connect(user1).updateStopLoss(1, 8 * 10 ** 8))
+                .to.emit(sxls, "StopLossUpdated");
 
-      // User2 withdraws 500 BLX
-      const user2BalBefore = await blx.balanceOf(user2.address);
-      await vault.connect(user2).withdraw(withdrawAmt, user2.address, user2.address);
-      const user2BalAfter = await blx.balanceOf(user2.address);
-      expect(user2BalAfter - user2BalBefore).to.equal(ethers.parseEther("497.5"));
+            // Verify PnL is correct
+            const pnlInfo = await sxls.getPositionPnL(1);
+            expect(pnlInfo.pnl).to.equal(0n);
 
-      // User1 withdraws the remaining 500 BLX (shares/assets)
-      const user1BalBefore2 = await blx.balanceOf(user1.address);
-      await vault.connect(user1).withdraw(withdrawAmt, user1.address, user1.address);
-      const user1BalAfter2 = await blx.balanceOf(user1.address);
-      expect(user1BalAfter2 - user1BalBefore2).to.equal(ethers.parseEther("497.5"));
+            // Oracle price rises to TP target ($15)
+            await oracle.setPrice(asset, 15 * 10 ** 8);
+
+            // Public execution of TP trigger (since owner != position creator, allowed when TP is hit)
+            await expect(sxls.connect(user2).closeLeveragedSpot(1))
+                .to.emit(sxls, "LeveragedSpotClosed");
+        });
+
+        it("should execute limit order only when price falls below trigger price", async function () {
+            const collateral = ethers.parseEther("100");
+            const asset = await mockCollateralToken.getAddress();
+
+            // Trigger price = $8. Current price = $10. Limit order remains pending.
+            await sxls.connect(user1).openLeveragedSpot(asset, collateral, 3n, true, 8 * 10 ** 8);
+
+            const detailsPending = await sxls.positions(1);
+            expect(detailsPending.isPending).to.be.true;
+
+            // Attempting to execute when price is still $10 should revert
+            await expect(sxls.checkAndExecuteLimitOrder(1))
+                .to.be.revertedWith("SXLS: price still above trigger");
+
+            // Update Oracle price to $8
+            await oracle.setPrice(asset, 8 * 10 ** 8);
+
+            // Execute limit order
+            await expect(sxls.checkAndExecuteLimitOrder(1))
+                .to.emit(sxls, "LimitOrderExecuted");
+
+            const detailsActive = await sxls.positions(1);
+            expect(detailsActive.isPending).to.be.false;
+        });
     });
-  });
+
+    describe("4. Unified Dashboard (SXUD)", function () {
+        it("should aggregate total exposures, collateral, and compute portfolio risk scores", async function () {
+            const asset = await mockCollateralToken.getAddress();
+            const usdtAddr = await usdt.getAddress();
+
+            // 1. Open Perp Position (Exposure = $1000, Collateral = $100)
+            await sxpt.connect(user1).openPerpetualPosition(asset, 10n, ethers.parseEther("100"), true, false);
+
+            // 2. Open Spot Position (Exposure = $300, Collateral = $100)
+            await sxls.connect(user1).openLeveragedSpot(asset, ethers.parseEther("100"), 3n, false, 0);
+
+            // 3. Open Loan (Borrow = $100, Collateral = $50 * $10 = $500)
+            await sxlt.connect(user2).lendAssets(usdtAddr, ethers.parseEther("5000"));
+            await sxlt.connect(user1).borrowAssets(usdtAddr, ethers.parseEther("100"), asset, ethers.parseEther("50"));
+
+            // Calculate aggregated metrics
+            const totalExposure = await sxud.getTotalExposure(user1.address);
+            // Expected exposure = 1000 (perp size) + 300 (spot size) + 100 (loan borrow) = 1400 USD
+            expect(totalExposure).to.equal(ethers.parseEther("1400"));
+
+            const totalCollateral = await sxud.getCrossTerminalCollateral(user1.address);
+            // Expected collateral = 100 (perp margin) + 100 (spot collateral) + 500 (lending collateral) = 700 USD
+            expect(totalCollateral).to.equal(ethers.parseEther("700"));
+
+            const riskScore = await sxud.getUnifiedRiskScore(user1.address);
+            // Risk score = (1400 * 100) / 700 = 200%, capped at 100%
+            expect(riskScore).to.equal(100n);
+
+            const allPos = await sxud.getAllPositions(user1.address);
+            expect(allPos.perps.length).to.equal(1);
+            expect(allPos.loans.length).to.equal(1);
+            expect(allPos.spots.length).to.equal(1);
+        });
+    });
+
+    describe("5. Hidden Orders (SXHOP)", function () {
+        it("should place and execute private orders via commitment-reveal validation", async function () {
+            const asset = await mockCollateralToken.getAddress();
+            const collateral = ethers.parseEther("100");
+            const leverage = 3n;
+            const orderType = 0; // HOBL
+            const price = 10n * 10n**8n;
+            const salt = 12345n;
+
+            // Generate commitment: user, targetAsset, collateralAmount, leverage, orderType, price, salt
+            const hash = ethers.keccak256(
+                ethers.AbiCoder.defaultAbiCoder().encode(
+                    ["address", "address", "uint256", "uint256", "uint8", "uint256", "uint256"],
+                    [user1.address, asset, collateral, leverage, orderType, price, salt]
+                )
+            );
+
+            // Mock ZK proof (non-empty bytes array)
+            const proof = ethers.hexlify(ethers.randomBytes(64));
+
+            // Place hidden order
+            await expect(sxhop.connect(user1).placeHiddenOrder(hash, proof))
+                .to.emit(sxhop, "HiddenOrderPlaced");
+
+            // Approve Hidden Order Contract to spend user's USDT (required for execution)
+            await usdt.connect(user1).approve(await sxhop.getAddress(), collateral);
+
+            // Execute Hidden Order with parameters revealed
+            const executionDetails = ethers.AbiCoder.defaultAbiCoder().encode(
+                ["address", "address", "uint256", "uint256", "uint8", "uint256", "uint256"],
+                [user1.address, asset, collateral, leverage, orderType, price, salt]
+            );
+
+            await expect(sxhop.connect(user2).executeHiddenOrder(1, executionDetails, proof))
+                .to.emit(sxhop, "HiddenOrderExecuted");
+
+            // Verify order status is Executed (1)
+            const status = await sxhop.getOrderStatus(1);
+            expect(status).to.equal(1); // Executed
+        });
+    });
+
+    describe("6. MultiSig Administration (SXAdmin)", function () {
+        it("should perform 3/3 MultiSig proposals to pause and resume target contracts", async function () {
+            // Target: sxadmin contract itself to activate kill switch
+            const data = sxadmin.interface.encodeFunctionData("activateKillSwitch");
+
+            // 1. Create Proposal
+            await expect(sxadmin.connect(device1).createProposal(await sxadmin.getAddress(), data))
+                .to.emit(sxadmin, "ProposalCreated");
+
+            // 2. Approve Proposal
+            await expect(sxadmin.connect(device1).approveProposal(1)).to.emit(sxadmin, "ProposalApproved");
+            await expect(sxadmin.connect(device2).approveProposal(1)).to.emit(sxadmin, "ProposalApproved");
+            await expect(sxadmin.connect(device3).approveProposal(1)).to.emit(sxadmin, "ProposalApproved");
+
+            // 3. Execute Proposal (Triggering pauses across all contracts)
+            await expect(sxadmin.connect(device1).executeProposal(1))
+                .to.emit(sxadmin, "ProposalExecuted")
+                .to.emit(sxadmin, "KillSwitchActivated");
+
+            // Contracts must be paused
+            expect(await sxpt.paused()).to.be.true;
+            expect(await sxlt.paused()).to.be.true;
+            expect(await sxls.paused()).to.be.true;
+
+            // 4. Create Proposal to resume
+            const dataDeactivate = sxadmin.interface.encodeFunctionData("deactivateKillSwitch");
+            await sxadmin.connect(device1).createProposal(await sxadmin.getAddress(), dataDeactivate);
+
+            // Approve with 3/3
+            await sxadmin.connect(device1).approveProposal(2);
+            await sxadmin.connect(device2).approveProposal(2);
+            await sxadmin.connect(device3).approveProposal(2);
+
+            // Execute resume proposal
+            await expect(sxadmin.connect(device1).executeProposal(2))
+                .to.emit(sxadmin, "ProposalExecuted")
+                .to.emit(sxadmin, "KillSwitchDeactivated");
+
+            // Contracts must be unpaused
+            expect(await sxpt.paused()).to.be.false;
+            expect(await sxlt.paused()).to.be.false;
+            expect(await sxls.paused()).to.be.false;
+        });
+
+        it("should reject unauthorized device calls", async function () {
+            const data = sxadmin.interface.encodeFunctionData("activateKillSwitch");
+            await expect(sxadmin.connect(user1).createProposal(await sxadmin.getAddress(), data))
+                .to.be.revertedWith("SXAdmin: only master device");
+        });
+    });
 });

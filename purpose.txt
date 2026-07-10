@@ -1,0 +1,53 @@
+🧪 Test/Mock Contracts
+Contract	Purpose
+MockUSDT	A free-mint ERC-20 token simulating USDT on testnet. Pre-mints 1 billion tokens to the deployer 
+and exposes a permissionless mint() function — used as the collateral/settlement currency across all protocol 
+contracts.
+
+MockOracle	A simple price feed contract (owner-settable). Stores asset → price mappings. All trading/lending contracts
+ query this for current asset prices. Replaces a real Chainlink oracle on testnet.
+
+🏛️ Governance & Safety
+Contract	Purpose
+SXAdmin	A multisig governance controller. Requires 3 "master devices" (signers). Any privileged action (e.g., pausing trading) 
+must go through a createProposal → approveProposal → executeProposal flow requiring unanimous approval. Also controls a kill switch 
+that simultaneously pauses SXPT, SXLT, and SXLS.
+
+📈 Core Trading Contracts
+Contract	Purpose
+SXPT (SX Perpetuals)	The perpetual futures engine (2x–1000x leverage). Users deposit USDT margin to open long/short positions.
+ Implements a funding rate mechanism (updated hourly based on long/short open interest skew, capped at 0.3%/hr). Losses are capped at 
+ margin (no negative balances). Pausable by SXAdmin.
+
+SXLS (SX Leveraged Spot)	A leveraged spot trading contract (1x–100x). Similar to SXPT but directionally long-only (no shorts).
+ Supports limit orders with a trigger price — a keeper can call checkAndExecuteLimitOrder() when the oracle price hits the 
+ threshold. Supports take-profit and stop-loss automation. Pausable by SXAdmin.
+
+SXLT (SX Lending Terminal)	A peer-to-pool lending/borrowing protocol. Users can lend assets to earn yield, or borrow against 
+collateral at a 250% LTV ratio. Interest rates are dynamic based on pool utilization (2% base + up to 20% at full utilization).
+ Repayment accrues time-weighted interest. Pausable by SXAdmin.
+
+🔒 Privacy Trading
+Contract	Purpose
+SXHOP (SX Hidden Order Protocol)	A commit-reveal hidden order system with mock ZK proof verification. Users submit a keccak256 
+commitment hash (hiding their order intent). A keeper later reveals and executes the order — verifying the commitment matches the 
+revealed details — then routes it through SXLS. Prevents front-running.
+
+📊 Unified Dashboard
+Contract	Purpose
+SXUD (SX Unified Dashboard)	A read-only aggregator contract that queries SXPT, SXLT, and SXLS in a single call. Provides: all 
+positions/loans in one view (getAllPositions), total cross-product exposure in USD (getTotalExposure), total collateral locked
+ (getCrossTerminalCollateral), and a unified risk score (0–100) representing exposure-to-collateral ratio (getUnifiedRiskScore). T
+ his is what the backend calls for dashboard metrics.
+
+
+
+
+
+How They Interconnect
+MockOracle ─────────────────► SXPT, SXLT, SXLS, SXUD
+MockUSDT ───────────────────► SXPT, SXLS, SXHOP, SXLT
+SXAdmin ────(kill switch)───► SXPT, SXLT, SXLS
+SXHOP ─────(routes trades)──► SXLS
+SXUD ──────(reads from)─────► SXPT, SXLT, SXLS
+9:39

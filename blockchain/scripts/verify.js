@@ -1,91 +1,99 @@
-const { run } = require("hardhat");
-const fs = require("fs");
 const path = require("path");
+require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
+require("dotenv").config({ path: path.resolve(__dirname, "../../.env") });
 
-async function verifyContracts() {
-  const detailsPath = path.join(__dirname, "../../Deployment_Details.json");
-  if (!fs.existsSync(detailsPath)) {
-    console.error("Error: Deployment_Details.json not found. Run deployment script first.");
+const hre = require("hardhat");
+
+// Contract addresses — read from environment variables
+const CONTRACTS = {
+  MockUSDT: {
+    address: process.env.USDT_ADDRESS,
+    args: [],
+  },
+  MockOracle: {
+    address: process.env.ORACLE_ADDRESS,
+    args: [],
+  },
+  SXPT: {
+    address: process.env.SXPT_ADDRESS,
+    args: [process.env.USDT_ADDRESS, process.env.ORACLE_ADDRESS],
+  },
+  SXLT: {
+    address: process.env.SXLT_ADDRESS,
+    args: [process.env.ORACLE_ADDRESS],
+  },
+  SXLS: {
+    address: process.env.SXLS_ADDRESS,
+    args: [process.env.USDT_ADDRESS, process.env.ORACLE_ADDRESS],
+  },
+  SXUD: {
+    address: process.env.SXUD_ADDRESS,
+    args: [
+      process.env.SXPT_ADDRESS,
+      process.env.SXLT_ADDRESS,
+      process.env.SXLS_ADDRESS,
+      process.env.ORACLE_ADDRESS,
+    ],
+  },
+  SXHOP: {
+    address: process.env.SXHOP_ADDRESS,
+    args: [process.env.SXLS_ADDRESS, process.env.USDT_ADDRESS],
+  },
+  SXAdmin: {
+    address: process.env.SXADMIN_ADDRESS,
+    args: [
+      process.env.DEVICE1_ADDRESS || process.env.DEPLOYER_ADDRESS,
+      process.env.DEVICE2_ADDRESS || process.env.DEPLOYER_ADDRESS,
+      process.env.DEVICE3_ADDRESS || process.env.DEPLOYER_ADDRESS,
+      process.env.SXPT_ADDRESS,
+      process.env.SXLT_ADDRESS,
+      process.env.SXLS_ADDRESS,
+    ],
+  },
+};
+
+async function verifyContract(contractName, contractConfig) {
+  if (!contractConfig.address) {
+    console.log(`⚠️  Skipping ${contractName}: address not found in environment variables`);
     return;
   }
 
-  const details = JSON.parse(fs.readFileSync(detailsPath, "utf8"));
-
-  const BLXToken = details.BLXToken;
-  const stBLXToken = details.stBLXToken;
-  const BlumeStaking = details.BlumeStaking;
-  const BlumeVault = details.BlumeVault;
-  const MockUSDT = details.MockUSDT;
-  const MockOracle = details.MockOracle;
-  const BlumeLP = details.BlumeLP;
-
-  console.log("Starting verification for network:", details.network);
-
   try {
-    console.log("Verifying BLXToken...");
-    await run("verify:verify", {
-      address: BLXToken,
-      constructorArguments: [],
-      contract: "contracts/BLXToken.sol:BLXToken",
-    });
-  } catch (e) { console.error("BLXToken verify failed:", e.message || e); }
+    console.log(`\n🔍 Verifying ${contractName} at ${contractConfig.address}...`);
 
-  try {
-    console.log("Verifying stBLXToken...");
-    await run("verify:verify", {
-      address: stBLXToken,
-      constructorArguments: [],
-      contract: "contracts/stBLXToken.sol:stBLXToken",
+    await hre.run("verify:verify", {
+      address: contractConfig.address,
+      constructorArguments: contractConfig.args,
     });
-  } catch (e) { console.error("stBLXToken verify failed:", e.message || e); }
 
-  try {
-    console.log("Verifying BlumeStaking...");
-    await run("verify:verify", {
-      address: BlumeStaking,
-      constructorArguments: [BLXToken, stBLXToken],
-      contract: "contracts/BlumeStaking.sol:BlumeStaking",
-    });
-  } catch (e) { console.error("BlumeStaking verify failed:", e.message || e); }
-
-  try {
-    console.log("Verifying MockUSDT...");
-    await run("verify:verify", {
-      address: MockUSDT,
-      constructorArguments: [],
-      contract: "contracts/MockUSDT.sol:MockUSDT",
-    });
-  } catch (e) { console.error("MockUSDT verify failed:", e.message || e); }
-
-  try {
-    console.log("Verifying MockOracle...");
-    await run("verify:verify", {
-      address: MockOracle,
-      constructorArguments: [500000, 6, "BLX / USDT price feed"],
-      contract: "contracts/MockOracle.sol:MockOracle",
-    });
-  } catch (e) { console.error("MockOracle verify failed:", e.message || e); }
-
-  try {
-    console.log("Verifying BlumeLP...");
-    await run("verify:verify", {
-      address: BlumeLP,
-      constructorArguments: [BLXToken, MockUSDT, MockOracle],
-      contract: "contracts/BlumeLP.sol:BlumeLP",
-    });
-  } catch (e) { console.error("BlumeLP verify failed:", e.message || e); }
-
-  try {
-    console.log("Verifying BlumeVault...");
-    await run("verify:verify", {
-      address: BlumeVault,
-      constructorArguments: [BLXToken, BlumeStaking, details.deployer],
-      contract: "contracts/BlumeVault.sol:BlumeVault",
-    });
-  } catch (e) { console.error("BlumeVault verify failed:", e.message || e); }
+    console.log(`✅ ${contractName} verified successfully!`);
+  } catch (error) {
+    // Already verified contracts will throw an error, but that's okay
+    if (error.message.includes("Already Verified")) {
+      console.log(`✅ ${contractName} is already verified!`);
+    } else {
+      console.error(`❌ Failed to verify ${contractName}:`, error.message);
+    }
+  }
 }
 
-verifyContracts()
+async function main() {
+  console.log("====================================================");
+  console.log("Contract Verification Script");
+  console.log("Network:", hre.network.name);
+  console.log("====================================================");
+
+  // Verify all contracts
+  for (const [contractName, contractConfig] of Object.entries(CONTRACTS)) {
+    await verifyContract(contractName, contractConfig);
+  }
+
+  console.log("\n====================================================");
+  console.log("Verification Complete!");
+  console.log("====================================================");
+}
+
+main()
   .then(() => process.exit(0))
   .catch((error) => {
     console.error(error);

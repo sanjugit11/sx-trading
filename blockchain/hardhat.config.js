@@ -6,7 +6,8 @@ require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
 
 const PRIVATE_KEY = process.env.PRIVATE_KEY || "0x0000000000000000000000000000000000000000000000000000000000000000";
 const BASE_SEPOLIA_RPC_URL = process.env.BASE_SEPOLIA_RPC_URL || "https://sepolia.base.org";
-const HOODI_TESTNET_RPC_URL = process.env.HOODI_TESTNET_RPC_URL || process.env.HOODI_RPC_URL || "https://rpc.hoodi.network";
+// HOODI_RPC_URL is set in root .env
+const HOODI_TESTNET_RPC_URL = process.env.HOODI_RPC_URL || process.env.HOODI_TESTNET_RPC_URL || "https://rpc.hoodi.ethpandaops.io";
 
 const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY || "";
 
@@ -19,6 +20,7 @@ module.exports = {
         enabled: true,
         runs: 200,
       },
+      viaIR: true,
       evmVersion: "cancun",
     },
   },
@@ -30,7 +32,8 @@ module.exports = {
     },
     hoodiTestnet: {
       url: HOODI_TESTNET_RPC_URL,
-      accounts: PRIVATE_KEY !== "" ? [PRIVATE_KEY] : [],
+      chainId: 560048,
+      accounts: PRIVATE_KEY !== "" ? [`0x${PRIVATE_KEY.replace(/^0x/, "")}`] : [],
     },
   },
   etherscan: {

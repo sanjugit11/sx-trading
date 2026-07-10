@@ -1,22 +1,42 @@
 {
-  "name": "blume-token-backend",
+  "name": "sx-trading-backend",
   "version": "1.0.0",
-  "description": "Secure Node.js Express API server for Blume Token Ecosystem",
-  "main": "server.js",
+  "description": "SX Trading Suite Backend Service",
+  "main": "src/server.ts",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "ts-node src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "db:migrate": "prisma migrate dev --name init",
+    "db:generate": "prisma generate",
+    "test": "HARDHAT_CONFIG=../blockchain/hardhat.config.js NODE_ENV=test mocha -r ts-node/register tests/**/*.test.ts --timeout 60000"
   },
   "dependencies": {
+    "@prisma/client": "^5.14.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
-    "ethers": "^6.12.1",
+    "ethers": "^6.12.0",
     "express": "^4.19.2",
-    "express-rate-limit": "^7.2.0",
-    "express-validator": "^7.1.0",
-    "helmet": "^7.1.0"
+    "helmet": "^7.1.0",
+    "node-cron": "^3.0.3",
+    "socket.io": "^4.7.5",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
-    "nodemon": "^3.1.0"
+    "@nomicfoundation/hardhat-ethers": "^4.0.14",
+    "@types/chai": "^4.3.16",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^20.12.12",
+    "@types/node-cron": "^3.0.11",
+    "@types/supertest": "^6.0.2",
+    "chai": "^4.3.10",
+    "hardhat": "^3.9.1",
+    "mocha": "^10.4.0",
+    "prisma": "^5.14.0",
+    "supertest": "^7.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
   }
 }

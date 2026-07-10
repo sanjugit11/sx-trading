@@ -1,182 +1,140 @@
-# Blume DeFi Ecosystem
+# Blume SX DeFi Trading Suite
 
-A comprehensive decentralized finance (DeFi) ecosystem featuring yield-earning vaults, classical and liquid staking mechanisms, an AMM liquidity pool, and price oracle protection guards.
-
-The project is structured as a multi-component monorepo:
-1. **`blockchain/`**: Smart contracts, compilation artifacts, and deployment/utility scripts using Hardhat.
-2. **`backend/`**: A Node.js & Express API server that serves global ecosystem statistics and logs transactions.
-3. **`frontend/`**: A React & Vite dashboard application that provides a modern, responsive user interface to interact with the backend and the blockchain.
+A premium, state-of-the-art decentralized finance terminal combining perpetual futures trading, high-yield asset lending, leveraged spot limit orders, zero-knowledge commitment hidden orders, and a MultiSig governance administration panel.
 
 ---
 
-## 📂 Project Structure
+## Workspace Architecture
 
-```text
-retest-7/
-├── backend/                  # Node.js Express API Server
-│   ├── server.js             # Main server logic and API routes
-│   └── package.json          # Backend dependencies and run scripts
-├── blockchain/               # Smart Contracts & Hardhat Environment
-│   ├── contracts/            # Solidity Smart Contracts (BLX, stBLX, Vault, LP, Oracle)
-│   ├── scripts/              # Deploy, verify, and mint utility scripts
-│   ├── test/                 # Chai/Mocha smart contract test suite
-│   ├── hardhat.config.js     # Hardhat network configuration
-│   └── package.json          # Blockchain dev dependencies and scripts
-├── frontend/                 # React Frontend Dashboard
-│   ├── src/                  # App components and Web3 Context provider
-│   ├── index.html            # Entry point
-│   ├── vite.config.js        # Vite configuration
-│   └── package.json          # Frontend packages and scripts
-├── .env                      # Universal environment configuration file
-└── Deployment_Details.json   # Generated contract addresses mapping
+```mermaid
+graph TD
+    A[Frontend: Next.js 15 App Router] -->|SIWE Authenticate / Query API| B[Backend: Express.js + SQLite Cache]
+    A -->|Direct MetaMask Tx Execution| C[Blockchain: Solidity Smart Contracts]
+    B -->|Index Events / Execute reveals & limits| C
 ```
 
----
-
-## ⚙️ Prerequisites
-
-Ensure you have the following installed on your machine:
-* **Node.js** (v18+ recommended)
-* **npm** (v9+ recommended)
-* **MetaMask Browser Extension** (for Web3 wallet interactions)
+- **`blockchain/`**: Ethereum/Solidity smart contracts built using Hardhat.
+- **`backend/`**: Express & Socket.io server with Prisma & SQLite caching on-chain logs.
+- **`frontend/`**: Next.js 15, Tailwind CSS, Recharts, and Ethers.js v6 trading interface.
 
 ---
 
-## 🛠️ Installation Flow
+## 1. Prerequisites
 
-Follow these steps to set up the repository locally:
+Ensure you have the following installed locally:
+- **Node.js** (v18 or higher)
+- **npm** (v9 or higher)
+- **MetaMask Extension** (optional, for browser-based transaction confirmations)
 
-### 1. Configure the Environment variables
-Copy the `.env` configuration file to the root of the project workspace. Both the `backend` and `blockchain` components are configured to automatically load this shared `.env` file from the parent directory (`../.env`).
+---
 
-A sample configuration contains:
-```env
-PRIVATE_KEY = <your-private-key>
-ETHERSCAN_API_KEY = <your-etherscan-api-key>
-DATABASE_URL = postgresql://postgres:postgres@localhost:5432/project9_db?schema=public
-HOODI_RPC_URL = https://rpc.hoodi.ethpandaops.io
+## 2. Installation & Setup
+
+Clone the repository and install dependencies in each directory:
+
+### Root Repository
+```bash
+git clone <repo-url>
+cd retest-7
 ```
 
-### 2. Install Blockchain Dependencies
-Navigate to the `blockchain/` directory and install the required npm packages:
+### Smart Contracts (Blockchain)
 ```bash
 cd blockchain
 npm install
 ```
 
-### 3. Install Backend Dependencies
-Navigate to the `backend/` directory and install the required Express packages:
+### Backend REST & WebSocket Server
 ```bash
-cd backend
+cd ../backend
 npm install
+# Generate Prisma Client & initialize SQLite database cache
+npx prisma generate
+npx prisma db push
 ```
 
-### 4. Install Frontend Dependencies
-Navigate to the `frontend/` directory and install the Vite/React packages:
+### Next.js Frontend App
 ```bash
-cd frontend
+cd ../frontend
 npm install
 ```
 
 ---
 
-## 🧪 Testing Commands
+## 3. Testing Guide
 
-The smart contract test suite validates contract functionality, limits, and yields.
+Execute unit and integration tests across both smart contracts and API controllers.
 
-To run the smart contract tests:
+### Smart Contracts Unit Tests
+Under the `blockchain/` folder:
 ```bash
 cd blockchain
-npm test
-```
-*Alternatively, you can run:*
-```bash
 npx hardhat test
 ```
+*Tests verify perpetual isolated/cross positions, 250% LTV borrow limits, spot limit order execution triggers, hidden commitments, and 3/3 MultiSig governance approval actions.*
 
-### What the Test Suite Validates:
-1. **BLX Token Anti-Whale Controls**: Ensures transfers exceeding maximum limits (`maxTxAmount`) or target wallets exceeding wallet balance caps (`maxWalletLimit`) are reverted correctly.
-2. **Classic Staking Early Withdrawals**: Validates that unstaking before lock maturity correctly charges the $15\%$ early penalty fee and forwards it to the protocol owner.
-3. **Liquidity Pool Oracle Protection**: Verifies that swaps are blocked if token reserves deviate beyond allowed margins from the Oracle price feed.
-4. **Advanced EIP-4626 Vault**: Tests auto-staking of vault deposits, reward compounding (via `compound()`), and withdraw/redeem operations.
-
----
-
-## 🚀 Running the Project
-
-You can run the ecosystem either in **Local Node Development Mode** or connect to **Ethereum Sepolia Testnet**.
-
-### Option A: Local Node Development Mode (Recommended)
-
-1. **Start Local Hardhat Blockchain Node**:
-   In a separate terminal window, launch a local Ethereum node:
-   ```bash
-   cd blockchain
-   npm run node
-   ```
-
-2. **Deploy Smart Contracts Locally**:
-   Deploy the smart contracts to the running local network:
-   ```bash
-   cd blockchain
-   npm run deploy:local
-   ```
-   *This compiles the contracts, deploys them, seeds initial pool liquidity, and creates/updates `Deployment_Details.json` at the root of the project.*
-
-3. **Start the Backend API Server**:
-   Start the Node.js backend to provide stats and route endpoints:
-   ```bash
-   cd backend
-   npm run dev
-   ```
-
-4. **Start the Frontend Dashboard**:
-   Run the Vite development server to view the interface:
-   ```bash
-   cd frontend
-   npm run dev
-   ```
+### Backend Server Integration Tests
+Under the `backend/` folder:
+```bash
+cd backend
+npm run test
+```
+*Tests verify SIWE auth signatures, JWT session verification, profile endpoint data, and risk exposure updates.*
 
 ---
 
-### Option B: Ethereum Sepolia Testnet Mode
+## 4. Local Deployment & Node Start
 
-1. **Deploy Smart Contracts to Sepolia**:
-   Ensure you have a funded wallet private key in your `.env` file, then run:
-   ```bash
-   cd blockchain
-   npm run deploy:sepolia
-   ```
+To deploy contracts locally and start indexing real-time events:
 
-2. **Verify Contracts on Etherscan (Optional)**:
-   Verify the deployed contracts on Sepolia:
-   ```bash
-   cd blockchain
-   npx hardhat run scripts/verify.js --network sepolia
-   ```
+### Step A: Spin Up Local Hardhat Node
+```bash
+cd blockchain
+npx hardhat node
+```
+*This starts a local JSON-RPC provider on `http://127.0.0.1:8545` and outputs 20 developer private keys.*
 
-3. **Start the Backend API Server**:
-   ```bash
-   cd backend
-   npm run dev
-   ```
-
-4. **Start the Frontend Dashboard**:
-   ```bash
-   cd frontend
-   npm run dev
-   ```
+### Step B: Deploy Contracts to Local Network
+In a separate terminal, deploy the Solidity contracts:
+```bash
+cd blockchain
+npx hardhat run scripts/deploy.js --network localhost
+```
+*Once deployed, the script will output the contract addresses (configured in backend & frontend).*
 
 ---
 
-## 🔗 Connecting MetaMask to Local Node
+## 5. Running the Application
 
-To test the application locally with a browser wallet:
-1. Open **MetaMask** and click on the Network dropdown.
-2. Select **Add Network** -> **Add a network manually**.
-3. Input the following details:
-   * **Network Name**: Hardhat Localhost
-   * **RPC URL**: `http://127.0.0.1:8545`
-   * **Chain ID**: `31337`
-   * **Currency Symbol**: `ETH`
-4. Import one of the private keys generated in the terminal log when you ran `npm run node` to access pre-funded development accounts.
+### Start Both Frontend and Backend Concurrently
+Under the `frontend/` folder, running:
+```bash
+cd frontend
+npm run dev
+```
+will concurrently start the frontend Next.js server on `http://localhost:3001` and the backend Express server on `http://localhost:3000`.
+
+Alternatively, they can be started individually:
+
+### Start the Backend Server
+```bash
+cd backend
+npm run dev
+```
+*The Express server boots on `http://localhost:3000`.*
+
+### Start the Next.js Frontend
+```bash
+cd frontend
+npx next dev -p 3001
+```
+*Access the Web3 trading terminal in your browser at `http://localhost:3001`.*
+
+---
+
+## 6. Using the Trading Suite
+
+1. **Sign-In (SIWE):** Visit `http://localhost:3001`. Connect your MetaMask wallet (configured for Localhost RPC) or click one of the pre-loaded **Developer Key** roles to sign the SIWE auth message.
+2. **Deposit / Borrow:** Go to **Lending Pool** to deposit assets, view supply APYs, and borrow funds under the 250% LTV constraint.
+3. **Execute Trades:** Go to **Perpetual Terminal** to manage positions with up to 1000x leverage.
+4. **Governance:** Access **Admin Panel** to create multi-device proposals or toggle the emergency Master Kill Switch.
