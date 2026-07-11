@@ -18,10 +18,10 @@ export default function LoginPage() {
   }, [isAuthenticated, router]);
 
   const mockWallets = [
-    { name: "Account #1 (Retail User)", address: "0x7099...79C8", label: "General Trader" },
-    { name: "Account #2 (Admin Device 2)", address: "0x3C44...93BC", label: "Multisig Owner" },
-    { name: "Account #3 (Admin Device 3)", address: "0x90F7...b906", label: "Multisig Owner" },
-    { name: "Account #0 (Super Deployer)", address: "0xf39F...2266", label: "Contract Creator" }
+    { name: "Account #1 (Retail User)", address: "0x1034...5E78", label: "General Trader" },
+    { name: "Account #2 (Admin Device 2)", address: "0xF7c...0fD9", label: "Multisig Owner" },
+    { name: "Account #3 (Admin Device 3)", address: "0xb45...0fD9", label: "Multisig Owner" },
+    { name: "Account #0 (Super Deployer)", address: "0x1034...BE71", label: "Contract Creator" }
   ];
 
   const handleConnect = async () => {

@@ -3,6 +3,7 @@ import { AuthenticatedRequest, generateSessionToken } from "../middleware/auth";
 import { blockchainService } from "../blockchain/service";
 import { PrismaClient } from "@prisma/client";
 import { logger } from "../utils/logger";
+import { indexerStatus, triggerIndexPoll } from "../blockchain/indexer";
 
 const prisma = new PrismaClient();
 
@@ -184,9 +185,16 @@ export class ApiController {
     const { id } = req.params;
 
     try {
-      const position = await prisma.perpetualPosition.findUnique({
-        where: { id }
-      });
+      let position;
+      if (isNaN(Number(id))) {
+        position = await prisma.perpetualPosition.findUnique({
+          where: { id }
+        });
+      } else {
+        position = await prisma.perpetualPosition.findUnique({
+          where: { posId: Number(id) }
+        });
+      }
 
       if (!position || !position.isOpen) {
         return res.status(404).json({ error: "Position not found or already closed" });
@@ -203,7 +211,7 @@ export class ApiController {
 
       // Update position status to closed
       const updated = await prisma.perpetualPosition.update({
-        where: { id },
+        where: { id: position.id },
         data: {
           isOpen: false,
           pnl
@@ -243,8 +251,17 @@ export class ApiController {
         ? Number(loanId)
         : Math.floor(Math.random() * 1000000);
 
-      const loan = await prisma.lendingLoan.create({
-        data: {
+      const loan = await prisma.lendingLoan.upsert({
+        where: { loanId: resolvedLoanId },
+        update: {
+          userId: req.user.id,
+          borrowAsset: borrowAsset.toLowerCase(),
+          borrowAmount,
+          collateralAsset: collateralAsset.toLowerCase(),
+          collateralAmount,
+          isOpen: true
+        },
+        create: {
           userId: req.user.id,
           loanId: resolvedLoanId,
           borrowAsset: borrowAsset.toLowerCase(),
@@ -295,22 +312,35 @@ export class ApiController {
   // Open Spot Trade Position
   public async openSpot(req: AuthenticatedRequest, res: Response) {
     if (!req.user) return res.status(401).json({ error: "Unauthorized" });
-    const { targetAsset, collateralAmount, leverage, isLimit, triggerPrice } = req.body;
+    const { posId, targetAsset, collateralAmount, leverage, isLimit, triggerPrice } = req.body;
 
     try {
       const entryPrice = await blockchainService.getOraclePrice(targetAsset);
+      const finalPosId = posId ? Number(posId) : Math.floor(Math.random() * 1000000);
 
-      const spot = await prisma.leveragedSpot.create({
-        data: {
+      const spot = await prisma.leveragedSpot.upsert({
+        where: { posId: finalPosId },
+        update: {
           userId: req.user.id,
-          posId: Math.floor(Math.random() * 1000000),
           targetAsset: targetAsset.toLowerCase(),
           collateralAmount,
           leverage,
           size: collateralAmount * leverage,
           isLimit,
           triggerPrice: triggerPrice || null,
-          isOpen: !isLimit, // open immediately if market, else wait
+          isOpen: !isLimit,
+          isPending: isLimit
+        },
+        create: {
+          userId: req.user.id,
+          posId: finalPosId,
+          targetAsset: targetAsset.toLowerCase(),
+          collateralAmount,
+          leverage,
+          size: collateralAmount * leverage,
+          isLimit,
+          triggerPrice: triggerPrice || null,
+          isOpen: !isLimit,
           isPending: isLimit
         }
       });
@@ -320,7 +350,83 @@ export class ApiController {
         spot
       });
     } catch (err) {
+      logger.error("Error opening spot:", err);
       return res.status(500).json({ error: "Failed to open spot position" });
+    }
+  }
+
+  // Close Spot Position
+  public async closeSpot(req: AuthenticatedRequest, res: Response) {
+    if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+    const { id } = req.params;
+
+    try {
+      let spot;
+      if (isNaN(Number(id))) {
+        spot = await prisma.leveragedSpot.findUnique({
+          where: { id }
+        });
+      } else {
+        spot = await prisma.leveragedSpot.findUnique({
+          where: { posId: Number(id) }
+        });
+      }
+
+      if (!spot || !spot.isOpen) {
+        return res.status(404).json({ error: "Spot position not found or already closed" });
+      }
+
+      // Update spot status to closed
+      const updated = await prisma.leveragedSpot.update({
+        where: { id: spot.id },
+        data: {
+          isOpen: false
+        }
+      });
+
+      return res.status(200).json({
+        message: "Spot position closed successfully",
+        spot: updated
+      });
+    } catch (err) {
+      logger.error("Error closing spot position:", err);
+      return res.status(500).json({ error: "Failed to close spot position" });
+    }
+  }
+
+  // Update Spot Take-Profit / Stop-Loss (DB only — on-chain tx handled by frontend)
+  public async updateSpotTakeProfit(req: AuthenticatedRequest, res: Response) {
+    if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+    const { id } = req.params;
+    const { takeProfit, stopLoss } = req.body;
+
+    try {
+      let spot;
+      if (isNaN(Number(id))) {
+        spot = await prisma.leveragedSpot.findUnique({ where: { id } });
+      } else {
+        spot = await prisma.leveragedSpot.findUnique({ where: { posId: Number(id) } });
+      }
+
+      if (!spot) {
+        return res.status(404).json({ error: "Spot position not found" });
+      }
+
+      const updated = await prisma.leveragedSpot.update({
+        where: { id: spot.id },
+        data: {
+          ...(takeProfit !== undefined && { takeProfit: Number(takeProfit) }),
+          ...(stopLoss !== undefined && { stopLoss: Number(stopLoss) })
+        }
+      });
+
+      return res.status(200).json({
+        message: "Take-profit updated successfully",
+        spot: updated
+      });
+    } catch (err) {
+      logger.error("Error updating spot take-profit:", err);
+      return res.status(500).json({ error: "Failed to update take-profit" });
     }
   }
 
@@ -372,6 +478,66 @@ export class ApiController {
       });
     } catch (err) {
       return res.status(500).json({ error: "Failed to execute hidden order" });
+    }
+  }
+
+  // Admin status — read kill switch state from on-chain
+  public async getAdminStatus(req: any, res: Response) {
+    try {
+      const killSwitchActive = await blockchainService.getKillSwitchStatus();
+      return res.status(200).json({ killSwitchActive });
+    } catch (err) {
+      logger.error("Error reading admin status:", err);
+      // Fail open (don't halt UI if contract is unreachable)
+      return res.status(200).json({ killSwitchActive: false, error: "Contract unreachable" });
+    }
+  }
+
+  // Get Security Audit Logs
+  public async getSecurityLogs(req: any, res: Response) {
+    try {
+      const logs = await prisma.auditLog.findMany({
+        orderBy: { timestamp: "desc" },
+        take: 30
+      });
+      return res.status(200).json(logs);
+    } catch (err) {
+      logger.error("Failed to fetch security logs:", err);
+      return res.status(500).json({ error: "Failed to fetch security logs" });
+    }
+  }
+
+  // Create Security Audit Log
+  public async createSecurityLog(req: any, res: Response) {
+    const { action, details, userId } = req.body;
+    try {
+      const log = await prisma.auditLog.create({
+        data: {
+          action,
+          details,
+          userId: userId || null,
+          ipAddress: req.ip || "127.0.0.1"
+        }
+      });
+      return res.status(201).json(log);
+    } catch (err) {
+      logger.error("Failed to create security log:", err);
+      return res.status(500).json({ error: "Failed to create security log" });
+    }
+  }
+
+  // Get Event Indexer Status
+  public getIndexerStatus(req: any, res: Response) {
+    return res.status(200).json(indexerStatus);
+  }
+
+  // Manually Trigger Event Indexer Poll
+  public async triggerIndexerPoll(req: any, res: Response) {
+    try {
+      const result = await triggerIndexPoll();
+      return res.status(200).json(result);
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message || err });
     }
   }
 }

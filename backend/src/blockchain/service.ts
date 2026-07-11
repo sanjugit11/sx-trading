@@ -10,8 +10,8 @@ const SXPT_ABI = [
   "function applyFundingDeduction(uint256 positionId) external",
   "function getUserPositions(address user) external view returns (uint256[] memory)",
   "function paused() external view returns (bool)",
-  "event PerpetualPositionOpened(uint256 indexed positionId, address indexed user, uint256 leverage, uint256 marginAmount, bool isLong, bool isCross)",
-  "event PerpetualPositionClosed(uint256 indexed positionId, address indexed user, int256 pnl)"
+  "event PerpetualPositionOpened(uint256 indexed positionId, address indexed user, address indexed asset, uint256 leverage, uint256 margin, bool isLong, bool isCross, uint256 entryPrice)",
+  "event PerpetualPositionClosed(uint256 indexed positionId, address indexed user, int256 finalPnL, uint256 payoutAmount)"
 ];
 
 const SXLT_ABI = [
@@ -22,9 +22,10 @@ const SXLT_ABI = [
   "function getInterestRate(address asset) external view returns (uint256)",
   "function getLendingYield(address asset) external view returns (uint256)",
   "function getUserLoans(address user) external view returns (uint256[] memory)",
+  "function lenderBalance(address, address) view returns (uint256)",
   "function paused() external view returns (bool)",
   "event LoanCreated(uint256 indexed loanId, address indexed user, address borrowAsset, uint256 borrowAmount, address collateralAsset, uint256 collateralAmount)",
-  "event LoanRepaid(uint256 indexed loanId, address indexed user, uint256 repayAmount)"
+  "event LoanRepaid(uint256 indexed loanId, address indexed user, uint256 amountRepaid, uint256 collateralReturned)"
 ];
 
 const SXLS_ABI = [
@@ -37,7 +38,7 @@ const SXLS_ABI = [
   "function checkAndExecuteLimitOrder(uint256 positionId) external",
   "function getUserPositions(address user) external view returns (uint256[] memory)",
   "function paused() external view returns (bool)",
-  "event LeveragedSpotOpened(uint256 indexed positionId, address indexed user, address targetAsset, uint256 leverage)"
+  "event LeveragedSpotOpened(uint256 indexed positionId, address indexed user, address indexed targetAsset, uint256 leverage, uint256 size, bool isPending)"
 ];
 
 const SXUD_ABI = [
@@ -185,6 +186,18 @@ export class BlockchainService {
       return true;
     } catch (err) {
       logger.error(`Error executing limit position #${positionId}:`, err);
+      return false;
+    }
+  }
+
+  // Read kill switch status from on-chain SXAdmin contract
+  public async getKillSwitchStatus(): Promise<boolean> {
+    if (!this.sxadmin) return false;
+    try {
+      const active: boolean = await this.sxadmin.killSwitchActive();
+      return active;
+    } catch (err) {
+      logger.error("Error reading killSwitchActive from SXAdmin:", err);
       return false;
     }
   }

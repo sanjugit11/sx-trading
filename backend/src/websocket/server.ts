@@ -7,8 +7,9 @@ let ioServer: Server | null = null;
 export function initWebSocketServer(server: HttpServer) {
   ioServer = new Server(server, {
     cors: {
-      origin: "*",
-      methods: ["GET", "POST"]
+      origin: ["http://localhost:3001", "http://127.0.0.1:3001"],
+      methods: ["GET", "POST"],
+      credentials: true
     }
   });
 

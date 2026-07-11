@@ -12,6 +12,7 @@ export const SIWEAuthSchema = z.object({
 
 export const OpenPerpSchema = z.object({
   body: z.object({
+    posId: z.number().int().nonnegative().optional(),
     asset: z.string().regex(ethAddressRegex, "Invalid asset token address format"),
     leverage: z.number().int().min(2).max(1000, "Leverage must be between 2x and 1000x"),
     marginAmount: z.number().positive("Margin amount must be positive"),
@@ -32,6 +33,7 @@ export const BorrowLendingSchema = z.object({
 
 export const OpenSpotSchema = z.object({
   body: z.object({
+    posId: z.number().int().nonnegative().optional(),
     targetAsset: z.string().regex(ethAddressRegex, "Invalid target asset address"),
     collateralAmount: z.number().positive("Collateral amount must be positive"),
     leverage: z.number().int().min(1).max(10, "Leverage for spot must be between 1x and 10x"),

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { DashboardShell } from "@/components/DashboardShell";
 import { useWeb3 } from "@/context/Web3Context";
 import { Coins, AlertTriangle, ShieldCheck, HelpCircle } from "lucide-react";
@@ -37,6 +37,39 @@ export default function LendingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  const fetchLendingData = useCallback(async () => {
+    if (!token || !address) return;
+    try {
+      const res = await axios.get("/api/user/profile", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data && res.data.loans) {
+        const sortedLoans = [...res.data.loans].sort((a: any, b: any) => b.loanId - a.loanId);
+        setLoans(sortedLoans);
+      }
+
+      const readProvider = new ethers.JsonRpcProvider("https://rpc.hoodi.ethpandaops.io");
+      const readContract = new ethers.Contract(CONTRACT_ADDRESSES.sxlt, CONTRACT_ABIS.sxlt, readProvider);
+      
+      const usdtLentRaw = await readContract.lenderBalance(address, CONTRACT_ADDRESSES.usdt);
+      const usdtLentAmount = Number(ethers.formatEther(usdtLentRaw));
+      
+      const newLent: LentPosition[] = [];
+      if (usdtLentAmount > 0) {
+        newLent.push({ asset: CONTRACT_ADDRESSES.usdt, amount: usdtLentAmount });
+      }
+      setLentPositions(newLent);
+    } catch (err) {
+      console.error("Error fetching lending data:", err);
+    }
+  }, [token, address]);
+
+  useEffect(() => {
+    fetchLendingData();
+    const interval = setInterval(fetchLendingData, 15_000);
+    return () => clearInterval(interval);
+  }, [fetchLendingData]);
 
   const collateralValue = collateralAmount * 1.0;
   const borrowValue = borrowAmount * 1.0;
@@ -108,6 +141,7 @@ export default function LendingPage() {
       });
 
       setSuccess(`Supplied ${lendAmount} USD of assets to the lending pool.`);
+      await fetchLendingData();
     } catch (err: any) {
       setError(err.message || "Failed to lend assets on-chain");
     } finally {
@@ -160,7 +194,7 @@ export default function LendingPage() {
       }
 
       const res = await axios.post(
-        "http://localhost:3000/api/lending/borrow",
+        "/api/lending/borrow",
         {
           borrowAsset,
           borrowAmount,
@@ -188,6 +222,7 @@ export default function LendingPage() {
         ...prev
       ]);
       setSuccess(`Loan created at 250% LTV and funded for ${borrowAmount} USD.`);
+      await fetchLendingData();
     } catch (err: any) {
       setError(err.message || "Failed to borrow loan on-chain");
     } finally {
@@ -228,7 +263,7 @@ export default function LendingPage() {
       );
 
       await axios.post(
-        `http://localhost:3000/api/lending/repay/${loan.id}`,
+        `/api/lending/repay/${loan.id}`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` }
@@ -237,6 +272,7 @@ export default function LendingPage() {
 
       setLoans((prev) => prev.map((entry) => (entry.id === loan.id ? { ...entry, isOpen: false } : entry)));
       setSuccess("Loan repaid successfully and collateral returned.");
+      await fetchLendingData();
     } catch (err: any) {
       setError(err.message || "Failed to repay the loan");
     } finally {

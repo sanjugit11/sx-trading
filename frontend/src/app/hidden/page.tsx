@@ -27,7 +27,7 @@ export default function HiddenOrdersPage() {
   const fetchProfile = useCallback(async () => {
     if (!token) return;
     try {
-      const res = await axios.get("http://localhost:3000/api/user/profile", {
+      const res = await axios.get("/api/user/profile", {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.data && res.data.hiddenOrders) {
@@ -124,7 +124,7 @@ export default function HiddenOrdersPage() {
       }
 
       // 2. Synchronize to database
-      const res = await axios.post("http://localhost:3000/api/hidden/place", {
+      const res = await axios.post("/api/hidden/place", {
         commitment: commitmentToUse,
         proof,
         orderId: latestOrderId
@@ -156,7 +156,7 @@ export default function HiddenOrdersPage() {
       const executionDetailsToUse = executionDetails;
 
       // Request Keeper execution on the backend (which executes it on-chain & updates database)
-      const res = await axios.post("http://localhost:3000/api/hidden/execute", {
+      const res = await axios.post("/api/hidden/execute", {
         orderId,
         executionDetails: executionDetailsToUse,
         proof: execProof

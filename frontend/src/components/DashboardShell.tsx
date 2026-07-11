@@ -17,7 +17,8 @@ import {
   X,
   Server,
   Droplets,
-  CheckCircle2
+  CheckCircle2,
+  ShieldAlert
 } from "lucide-react";
 import axios from "axios";
 import { ethers } from "ethers";
@@ -97,21 +98,20 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({ children }) => {
   // Check health and Kill Switch status from backend periodically
   useEffect(() => {
     const checkStatus = async () => {
+      // Health check
       try {
-        const res = await axios.get("http://localhost:3000/health");
+        const res = await axios.get("/health");
         setBackendHealthy(res.data.status === "healthy");
       } catch {
         setBackendHealthy(false);
       }
 
-      // Query dashboard metrics to see if system responds or is paused
+      // Read on-chain kill switch status
       try {
-        const dashboard = await axios.get("http://localhost:3000/api/dashboard", {
-          headers: { Authorization: `Bearer ${localStorage.getItem("sx_token")}` }
-        });
-        // Mock check or status if backend confirms a paused state
-      } catch (err) {
-        // Suppress logging to avoid console pollution
+        const adminRes = await axios.get("/api/admin/status");
+        setKillSwitchActive(adminRes.data.killSwitchActive === true);
+      } catch {
+        // Non-fatal: keep previous state if endpoint unreachable
       }
     };
     checkStatus();
@@ -137,6 +137,8 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({ children }) => {
     { name: "Leveraged Spot", path: "/spot", icon: Layers },
     { name: "Hidden Orders", path: "/hidden", icon: EyeOff },
     { name: "Admin Panel", path: "/admin", icon: ShieldCheck },
+    { name: "Security & Compliance", path: "/compliance", icon: ShieldAlert },
+    { name: "Event Indexer", path: "/admin/indexer", icon: Server },
   ];
 
   const handleLogout = () => {

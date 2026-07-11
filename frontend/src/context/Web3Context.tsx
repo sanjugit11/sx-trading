@@ -68,7 +68,7 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
       const message = `Sign in to SX Trading Suite: ${walletAddr.toLowerCase()}`;
       const signature = await wallet.signMessage(message);
 
-      const res = await axios.post("http://localhost:3000/api/auth/verify", {
+      const res = await axios.post("/api/auth/verify", {
         address: walletAddr,
         message,
         signature
@@ -157,7 +157,7 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
       const message = `Sign in to SX Trading Suite: ${walletAddr.toLowerCase()}`;
       const signature = await signer.signMessage(message);
 
-      const res = await axios.post("http://localhost:3000/api/auth/verify", {
+      const res = await axios.post("/api/auth/verify", {
         address: walletAddr,
         message,
         signature
@@ -212,6 +212,9 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
         const activeIndex = mockIndex >= 0 ? mockIndex : 0;
         signer = new ethers.Wallet(MOCK_KEYS[activeIndex], fallbackProvider);
       }
+
+      const txSignerAddress = await signer.getAddress();
+      console.log(`[Web3Context] Executing transaction: ${method} on contract: ${contractAddress}. Signer Address: ${txSignerAddress}`);
 
       // Check and auto-approve USDT for core trading contracts if needed
       const isTradingContract = [

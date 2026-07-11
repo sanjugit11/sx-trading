@@ -37,18 +37,14 @@ module.exports = {
     },
   },
   etherscan: {
-    apiKey: {
-      // Base Sepolia uses Basescan — same key format as Etherscan
-      baseSepolia: ETHERSCAN_API_KEY,
-      // Hoodi is an Ethereum-based testnet — uses Etherscan key
-      hoodiTestnet: ETHERSCAN_API_KEY,
-    },
+    // Etherscan v2 expects a single API key plus a custom chain entry.
+    apiKey: ETHERSCAN_API_KEY,
     customChains: [
       {
         network: "hoodiTestnet",
         chainId: 560048,
         urls: {
-          apiURL: "https://api.etherscan.io/v2/api?chainid=560048",
+          apiURL: "https://api.etherscan.io/v2/api",
           browserURL: "https://hoodi.etherscan.io",
         },
       },

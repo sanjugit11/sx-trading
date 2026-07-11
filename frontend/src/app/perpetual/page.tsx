@@ -37,7 +37,7 @@ export default function PerpetualPage() {
   const { token, sendTransaction } = useWeb3();
 
   // Form state
-  const [asset, setAsset] = useState("0x2c75e12798e1648058F90E14baB1F1Eef3e4Fdf7");
+  const [asset, setAsset] = useState("0x7EdE77F55C8D6ce1c7cB8B501a5f57FfFE236234");
   const [leverage, setLeverage] = useState(10);
   const [marginAmount, setMarginAmount] = useState(100);
   const [isLong, setIsLong] = useState(true);
@@ -75,7 +75,7 @@ export default function PerpetualPage() {
   const fetchAll = useCallback(async () => {
     // 1. Fetch public market data (price & skew funding rate)
     try {
-      const marketRes = await axios.get(`http://localhost:3000/api/market/${asset}`);
+      const marketRes = await axios.get(`/api/market/${asset}`);
       setOraclePrice(marketRes.data.price ?? null);
       setFundingRate(marketRes.data.fundingRate ?? null);
     } catch (err) {
@@ -91,7 +91,7 @@ export default function PerpetualPage() {
     }
 
     try {
-      const profileRes = await axios.get("http://localhost:3000/api/user/profile", {
+      const profileRes = await axios.get("/api/user/profile", {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -180,9 +180,12 @@ export default function PerpetualPage() {
         }
       }
 
+      const perpBody: any = { asset, leverage, marginAmount, isLong, isCross };
+      if (posId !== null) perpBody.posId = posId;
+
       await axios.post(
-        "http://localhost:3000/api/perpetual/open",
-        { posId, asset, leverage, marginAmount, isLong, isCross },
+        "/api/perpetual/open",
+        perpBody,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -205,7 +208,17 @@ export default function PerpetualPage() {
       const onChainPosition = await readContract.positions(posId);
 
       if (!onChainPosition.isOpen) {
-        setHiddenPositionIds((prev) => prev.includes(posId) ? prev : [...prev, posId]);
+        try {
+          await axios.post(
+            `/api/perpetual/close/${posId}`,
+            {},
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+        } catch (e) {
+          console.error("Failed to sync closed position to backend:", e);
+        }
+
+        setHiddenPositionIds((prev) => (prev.includes(posId) ? prev : [...prev, posId]));
         setPositions((prev) => prev.filter((position) => position.posId !== posId));
         setCrossTerminalSummary((prev) => ({
           ...prev,
@@ -214,12 +227,30 @@ export default function PerpetualPage() {
             perpetual: Math.max(0, prev.counts.perpetual - 1)
           }
         }));
-        setError(`Perpetual position #${posId} is no longer open on-chain. It may already have been closed.`);
-        setLoading(false);
+        setError(`Perpetual position #${posId} is no longer open on-chain. It has been cleared from your dashboard.`);
         return;
       }
 
-      setHiddenPositionIds((prev) => prev.includes(posId) ? prev : [...prev, posId]);
+      const receipt = await sendTransaction(
+        CONTRACT_ADDRESSES.sxpt,
+        CONTRACT_ABIS.sxpt,
+        "closePerpetualPosition",
+        [BigInt(posId)]
+      );
+
+      if (receipt) {
+        try {
+          await axios.post(
+            `/api/perpetual/close/${posId}`,
+            {},
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+        } catch (e) {
+          console.error("Failed to sync closed position to backend:", e);
+        }
+      }
+
+      setHiddenPositionIds((prev) => (prev.includes(posId) ? prev : [...prev, posId]));
       setPositions((prev) => prev.filter((position) => position.posId !== posId));
       setCrossTerminalSummary((prev) => ({
         ...prev,
@@ -228,19 +259,6 @@ export default function PerpetualPage() {
           perpetual: Math.max(0, prev.counts.perpetual - 1)
         }
       }));
-
-      await sendTransaction(
-        CONTRACT_ADDRESSES.sxpt,
-        CONTRACT_ABIS.sxpt,
-        "closePerpetualPosition",
-        [BigInt(posId)]
-      );
-
-      await axios.post(
-        `http://localhost:3000/api/perpetual/close/${posId}`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
 
       await fetchAll();
     } catch (err: any) {

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "concurrently \"next dev -p 3001\" \"npm run dev --prefix ../backend\"",
+    "dev": "concurrently \"next dev --turbo -p 3001\" \"npm run dev --prefix ../backend\"",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"

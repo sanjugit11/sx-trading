@@ -71,10 +71,10 @@ export default function DashboardPage() {
     if (!token) return;
     try {
       const [profileRes, dashboardRes] = await Promise.all([
-        axios.get("http://localhost:3000/api/user/profile", {
+        axios.get("/api/user/profile", {
           headers: { Authorization: `Bearer ${token}` }
         }),
-        axios.get("http://localhost:3000/api/dashboard", {
+        axios.get("/api/dashboard", {
           headers: { Authorization: `Bearer ${token}` }
         })
       ]);

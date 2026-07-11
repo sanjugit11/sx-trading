@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { DashboardShell } from "@/components/DashboardShell";
 import { useWeb3 } from "@/context/Web3Context";
 import { ArrowUpRight, ShieldCheck, AlertTriangle } from "lucide-react";
@@ -10,7 +10,7 @@ import { CONTRACT_ADDRESSES, CONTRACT_ABIS } from "@/blockchain/config";
 
 export default function SpotPage() {
   const { token, sendTransaction, address } = useWeb3();
-  const [targetAsset, setTargetAsset] = useState("0x2c75e12798e1648058F90E14baB1F1Eef3e4Fdf7"); // MockUSDT
+  const [targetAsset, setTargetAsset] = useState("0x7EdE77F55C8D6ce1c7cB8B501a5f57FfFE236234"); // MockUSDT
   const [collateralAmount, setCollateralAmount] = useState(100);
   const [leverage, setLeverage] = useState(3);
   const [isLimit, setIsLimit] = useState(false);
@@ -20,6 +20,25 @@ export default function SpotPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  const fetchSpots = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await axios.get("/api/user/profile", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const userSpots = res.data?.leveragedSpots ?? res.data?.spots ?? [];
+      // Sort desc so newest positions show first
+      userSpots.sort((a: any, b: any) => b.posId - a.posId);
+      setSpots(userSpots);
+    } catch (err) {
+      console.warn("Failed to fetch spot orderbook:", err);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    fetchSpots();
+  }, [fetchSpots]);
 
   const handleOpenSpot = async () => {
     if (!token) return;
@@ -41,13 +60,28 @@ export default function SpotPage() {
         ]
       );
 
-      const res = await axios.post("http://localhost:3000/api/spot/open", {
-        targetAsset,
-        collateralAmount,
-        leverage,
-        isLimit,
-        triggerPrice: isLimit ? triggerPrice : undefined
-      }, {
+      let posId = null;
+      if (receipt && receipt.logs) {
+        const sxlsInterface = new ethers.Interface(CONTRACT_ABIS.sxls);
+        for (const log of receipt.logs) {
+          try {
+            const parsedLog = sxlsInterface.parseLog(log);
+            if (parsedLog && parsedLog.name === "LeveragedSpotOpened") {
+              posId = Number(parsedLog.args.positionId);
+              console.log("Parsed real on-chain spot positionId:", posId);
+              break;
+            }
+          } catch (e) {
+            // Ignore unrelated logs
+          }
+        }
+      }
+
+      const spotBody: any = { targetAsset, collateralAmount, leverage, isLimit };
+      if (posId !== null) spotBody.posId = posId;
+      if (isLimit) spotBody.triggerPrice = triggerPrice;
+
+      const res = await axios.post("/api/spot/open", spotBody, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -74,26 +108,45 @@ export default function SpotPage() {
     setSuccess(null);
 
     try {
-      const readProvider = new ethers.JsonRpcProvider("https://rpc.hoodi.ethpandaops.io");
-      const readContract = new ethers.Contract(CONTRACT_ADDRESSES.sxls, CONTRACT_ABIS.sxls, readProvider);
-      const onChainPosition = await readContract.positions(spot.posId);
+      const saveTPToBackend = async () => {
+        await axios.patch(
+          `/api/spot/takeprofit/${spot.posId}`,
+          { takeProfit },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setSpots((prev) => prev.filter((entry) => entry.posId !== spot.posId));
+      };
 
-      if (!onChainPosition.isOpen) {
-        setSpots((prev) => prev.map((entry) => entry.posId === spot.posId ? { ...entry, isOpen: false } : entry));
-        setError(`Spot #${spot.posId} is no longer open on-chain. It may already have been closed.`);
-        setLoading(false);
+      if (spot.isPending || spot.isLimit) {
+        await saveTPToBackend();
+        setSuccess(`Take-profit saved for pending spot #${spot.posId}. No on-chain transaction was sent.`);
         return;
       }
 
-      await sendTransaction(
-        CONTRACT_ADDRESSES.sxls,
-        CONTRACT_ABIS.sxls,
-        "updateTakeProfit",
-        [BigInt(spot.posId), ethers.parseEther(takeProfit.toString())]
-      );
+      const readProvider = new ethers.JsonRpcProvider("https://rpc.hoodi.ethpandaops.io");
+      const readContract = new ethers.Contract(CONTRACT_ADDRESSES.sxls, CONTRACT_ABIS.sxls, readProvider);
 
-      setSuccess(`Take-profit set to $${takeProfit} for spot #${spot.posId}.`);
-      setSpots((prev) => prev.map((entry) => entry.posId === spot.posId ? { ...entry, takeProfit } : entry));
+      let onChainIsOpen = false;
+      try {
+        const onChainPosition = await readContract.positions(spot.posId);
+        onChainIsOpen = onChainPosition.isOpen;
+      } catch (e) {
+        console.warn("On-chain read failed for spot #" + spot.posId + ", saving TP to DB only:", e);
+      }
+
+      if (onChainIsOpen) {
+        await sendTransaction(
+          CONTRACT_ADDRESSES.sxls,
+          CONTRACT_ABIS.sxls,
+          "updateTakeProfit",
+          [BigInt(spot.posId), ethers.parseEther(takeProfit.toString())]
+        );
+        await saveTPToBackend();
+        setSuccess(`Take-profit updated on-chain and saved for spot #${spot.posId}.`);
+      } else {
+        await saveTPToBackend();
+        setSuccess(`Spot #${spot.posId} was not active on-chain, so the TP was saved to the order record only.`);
+      }
     } catch (err: any) {
       setError(err.message || "Failed to set take-profit");
     } finally {
@@ -224,8 +277,8 @@ export default function SpotPage() {
                         <span className="font-semibold block text-slate-200">Spot #{spot.posId}</span>
                         <span className="text-[10px] text-slate-500">Size: ${spot.size} | Mode: {spot.isLimit ? `Limit @ $${spot.triggerPrice}` : "Market"}</span>
                       </div>
-                      <span className={`text-[10px] font-orbitron font-bold uppercase px-2 py-0.5 rounded ${spot.isPending ? "bg-amber-500/10 text-amber-400" : spot.isOpen === false ? "bg-slate-500/10 text-slate-400" : "bg-emerald-500/10 text-emerald-400"}`}>
-                        {spot.isOpen === false ? "CLOSED" : spot.isPending ? "PENDING" : "OPENED"}
+                      <span className={`text-[10px] font-orbitron font-bold uppercase px-2 py-0.5 rounded ${spot.isPending ? "bg-amber-500/10 text-amber-400" : spot.isOpen === false ? "bg-slate-500/10 text-slate-400" : spot.tpConfigured || spot.takeProfit != null ? "bg-cyan-500/10 text-cyan-400" : "bg-emerald-500/10 text-emerald-400"}`}>
+                        {spot.isOpen === false ? "CLOSED" : spot.isPending ? "PENDING" : spot.tpConfigured || spot.takeProfit != null ? "TP SET" : "OPENED"}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">

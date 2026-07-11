@@ -1,5 +1,4 @@
 const path = require("path");
-require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
 require("dotenv").config({ path: path.resolve(__dirname, "../../.env") });
 
 const hre = require("hardhat");
@@ -52,27 +51,44 @@ const CONTRACTS = {
   },
 };
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function verifyContract(contractName, contractConfig) {
   if (!contractConfig.address) {
     console.log(`⚠️  Skipping ${contractName}: address not found in environment variables`);
     return;
   }
 
-  try {
-    console.log(`\n🔍 Verifying ${contractName} at ${contractConfig.address}...`);
+  const maxAttempts = 3;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      console.log(`\n🔍 Verifying ${contractName} at ${contractConfig.address}...`);
 
-    await hre.run("verify:verify", {
-      address: contractConfig.address,
-      constructorArguments: contractConfig.args,
-    });
+      await hre.run("verify:verify", {
+        address: contractConfig.address,
+        constructorArguments: contractConfig.args,
+      });
 
-    console.log(`✅ ${contractName} verified successfully!`);
-  } catch (error) {
-    // Already verified contracts will throw an error, but that's okay
-    if (error.message.includes("Already Verified")) {
-      console.log(`✅ ${contractName} is already verified!`);
-    } else {
-      console.error(`❌ Failed to verify ${contractName}:`, error.message);
+      console.log(`✅ ${contractName} verified successfully!`);
+      return;
+    } catch (error) {
+      const message = error.message || "";
+      if (/already verified/i.test(message)) {
+        console.log(`✅ ${contractName} is already verified!`);
+        return;
+      }
+
+      const isTransientExplorerError = /network request failed|fetch failed|timeout|timed out|socket hang up|ECONNRESET|ETIMEDOUT|429|temporar|try again/i.test(message);
+      if (isTransientExplorerError && attempt < maxAttempts) {
+        console.warn(`⚠️  Transient verification failure for ${contractName} (attempt ${attempt}/${maxAttempts}). Retrying in 10s...`);
+        await sleep(10000);
+        continue;
+      }
+
+      console.error(`❌ Failed to verify ${contractName}:`, message);
+      return;
     }
   }
 }

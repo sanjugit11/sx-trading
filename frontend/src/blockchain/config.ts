@@ -1,11 +1,13 @@
+
+
 export const CONTRACT_ADDRESSES = {
-  usdt:    "0x2c75e12798e1648058F90E14baB1F1Eef3e4Fdf7",
-  sxpt:    "0xd5fb991Af20e9cCb46074755Cc6ccC06b284C2cB",
-  sxlt:    "0xeC59c3fd2fD491ea106330ABaaCA7907369874Bc",
-  sxls:    "0x43205d5AeC3BC7Fe4cdD183145b30AbDe9489ead",
-  sxud:    "0x36d8b489bDd1AD9e69176C9084CC5Dd0662A1b5E",
-  sxhop:   "0x7252800e5724F417af57A5Dc521a37865582424A",
-  sxadmin: "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBE6" // Placeholder or actual if deployed
+  usdt:    "0x7EdE77F55C8D6ce1c7cB8B501a5f57FfFE236234",
+  sxpt:    "0x44087077C55fD0bEa8DA21280713A4449cCDe3E6",
+  sxlt:    "0x8c1Dfa85296d09727d1dFb875d6d89a91060C735",
+  sxls:    "0x4CBe9bb948E25DDB6AcaB1331a6567B6EdA9B6Fd",
+  sxud:    "0x618f2757a2a3Cb7FE31dB97D152308fBf1962D9a",
+  sxhop:   "0x98abC10B7A8A9C10993458447493E3D31CE23632",
+  sxadmin: "0x5900491f857DA2B1fbD0c4143cB4E3183c98Cd24"
 };
 
 export const CONTRACT_ABIS = {
@@ -34,6 +36,7 @@ export const CONTRACT_ABIS = {
     "function getInterestRate(address asset) external view returns (uint256)",
     "function getLendingYield(address asset) external view returns (uint256)",
     "function getUserLoans(address user) external view returns (uint256[] memory)",
+    "function lenderBalance(address, address) view returns (uint256)",
     "function paused() external view returns (bool)",
     "event LoanCreated(uint256 indexed loanId, address indexed user, address borrowAsset, uint256 borrowAmount, address collateralAsset, uint256 collateralAmount)",
     "event LoanRepaid(uint256 indexed loanId, address indexed user, uint256 amountRepaid, uint256 collateralReturned)"
@@ -60,6 +63,15 @@ export const CONTRACT_ABIS = {
     "function createProposal(address target, bytes calldata data) external returns (uint256)",
     "function approveProposal(uint256 proposalId) external",
     "function executeProposal(uint256 proposalId) external",
-    "function killSwitchActive() external view returns (bool)"
+    "function killSwitchActive() external view returns (bool)",
+    "function activateKillSwitch() external",
+    "function deactivateKillSwitch() external",
+    "function proposalCounter() external view returns (uint256)",
+    "function proposals(uint256) external view returns (uint256 id, address target, bytes data, uint256 approvalCount, bool executed)",
+    "event KillSwitchActivated()",
+    "event KillSwitchDeactivated()",
+    "event ProposalCreated(uint256 indexed proposalId, address indexed target)",
+    "event ProposalApproved(uint256 indexed proposalId, address indexed approver)",
+    "event ProposalExecuted(uint256 indexed proposalId)"
   ]
 };

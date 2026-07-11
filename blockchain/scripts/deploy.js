@@ -1,3 +1,5 @@
+const path = require("path");
+require("dotenv").config({ path: path.resolve(__dirname, "../../.env") });
 const { ethers } = require("hardhat");
 
 async function main() {
@@ -70,11 +72,11 @@ async function main() {
 
     // 8. Deploy SXAdmin (MultiSig Admin)
     // For production/script, we specify the three master devices
-    const d1 = device1 ? device1.address : deployer.address;
-    const d2 = device2 ? device2.address : deployer.address;
-    const d3 = device3 ? device3.address : deployer.address;
+    const d1 = process.env.DEVICE1_ADDRESS || (device1 ? device1.address : deployer.address);
+    const d2 = process.env.DEVICE2_ADDRESS || (device2 ? device2.address : deployer.address);
+    const d3 = process.env.DEVICE3_ADDRESS || (device3 ? device3.address : deployer.address);
 
-    console.log(`Deploying SXAdmin with devices: ${d1}, ${d2}, ${d3}...`);
+    console.log(`Deploying SXAdmin with devices: \n  1: ${d1}\n  2: ${d2}\n  3: ${d3}...`);
     const SXAdmin = await ethers.getContractFactory("SXAdmin");
     const sxadmin = await SXAdmin.deploy(d1, d2, d3, sxptAddr, sxltAddr, sxlsAddr);
     await sxadmin.waitForDeployment();

@@ -8,6 +8,29 @@ const prisma = new PrismaClient();
 // Poll interval in milliseconds (30 s — reduced from 12s to avoid RPC spam)
 const POLL_INTERVAL_MS = 30_000;
 
+export interface IndexerLog {
+  timestamp: string;
+  type: "info" | "error" | "warn";
+  message: string;
+}
+
+export const indexerStatus = {
+  status: "active",
+  lastProcessedBlock: 0,
+  latestBlock: 0,
+  pollIntervalMs: POLL_INTERVAL_MS,
+  lastPollTime: new Date().toISOString(),
+  logs: [] as IndexerLog[]
+};
+
+function addLog(type: "info" | "error" | "warn", message: string) {
+  const timestamp = new Date().toISOString();
+  indexerStatus.logs.unshift({ timestamp, type, message });
+  if (indexerStatus.logs.length > 50) {
+    indexerStatus.logs.pop();
+  }
+}
+
 /**
  * Poll for events by querying logs over the most recent block range.
  * This avoids eth_newFilter (stateful) which is unsupported on load-balanced RPC endpoints.
@@ -22,8 +45,10 @@ async function pollEvents(fromBlock: number, toBlock: number) {
     );
     for (const raw of events) {
       const e = raw as ethers.EventLog;
-      const [positionId, userAddress, leverage, marginAmount, isLong, isCross] = e.args;
-      logger.info(`Event: PerpetualPositionOpened detected for position #${positionId}`);
+      const [positionId, userAddress, assetAddress, leverage, marginAmount, isLong, isCross, entryPrice] = e.args;
+      const msg = `Event: [PerpetualPositionOpened] | Method: [openPerpetualPosition] | Position ID: #${positionId} | Tx: ${e.transactionHash.slice(0, 18)}... | User: ${userAddress.slice(0, 8)}... | Margin: ${Number(marginAmount) / 1e18} USDT | Leverage: ${leverage}x`;
+      logger.info(msg);
+      addLog("info", msg);
       try {
         const dbUser = await prisma.user.findUnique({ where: { address: userAddress.toLowerCase() } });
         if (dbUser) {
@@ -45,12 +70,14 @@ async function pollEvents(fromBlock: number, toBlock: number) {
             update: { isOpen: true }
           });
         }
-      } catch (err) {
+      } catch (err: any) {
         logger.error("Error processing PerpetualPositionOpened event:", err);
+        addLog("error", `Error processing PerpetualPositionOpened: ${err.message || err}`);
       }
     }
-  } catch (err) {
+  } catch (err: any) {
     logger.error("Error querying PerpetualPositionOpened events:", err);
+    addLog("error", `Error querying PerpetualPositionOpened: ${err.message || err}`);
   }
 
   // ── 2. PerpetualPositionClosed ──────────────────────────────────────────────
@@ -63,18 +90,22 @@ async function pollEvents(fromBlock: number, toBlock: number) {
     for (const raw of events) {
       const e = raw as ethers.EventLog;
       const [positionId, , finalPnL] = e.args;
-      logger.info(`Event: PerpetualPositionClosed detected for position #${positionId}`);
+      const msg = `Event: [PerpetualPositionClosed] | Method: [closePerpetualPosition] | Position ID: #${positionId} | Tx: ${e.transactionHash.slice(0, 18)}... | PnL: ${Number(finalPnL) / 1e18} USDT`;
+      logger.info(msg);
+      addLog("info", msg);
       try {
         await prisma.perpetualPosition.updateMany({
           where: { posId: Number(positionId) },
           data: { isOpen: false, pnl: Number(finalPnL) / 1e18 }
         });
-      } catch (err) {
+      } catch (err: any) {
         logger.error("Error processing PerpetualPositionClosed event:", err);
+        addLog("error", `Error processing PerpetualPositionClosed: ${err.message || err}`);
       }
     }
-  } catch (err) {
+  } catch (err: any) {
     logger.error("Error querying PerpetualPositionClosed events:", err);
+    addLog("error", `Error querying PerpetualPositionClosed: ${err.message || err}`);
   }
 
   // ── 3. LoanCreated ─────────────────────────────────────────────────────────
@@ -87,7 +118,9 @@ async function pollEvents(fromBlock: number, toBlock: number) {
     for (const raw of events) {
       const e = raw as ethers.EventLog;
       const [loanId, userAddress, borrowAsset, borrowAmount, collateralAsset, collateralAmount] = e.args;
-      logger.info(`Event: LoanCreated detected for loan #${loanId}`);
+      const msg = `Event: [LoanCreated] | Method: [borrowAssets] | Loan ID: #${loanId} | Tx: ${e.transactionHash.slice(0, 18)}... | Borrower: ${userAddress.slice(0, 8)}... | Borrow: ${Number(borrowAmount) / 1e18} ${borrowAsset.slice(0, 8)}... | Collateral: ${Number(collateralAmount) / 1e18} ${collateralAsset.slice(0, 8)}...`;
+      logger.info(msg);
+      addLog("info", msg);
       try {
         const dbUser = await prisma.user.findUnique({ where: { address: userAddress.toLowerCase() } });
         if (dbUser) {
@@ -105,12 +138,14 @@ async function pollEvents(fromBlock: number, toBlock: number) {
             update: { isOpen: true }
           });
         }
-      } catch (err) {
+      } catch (err: any) {
         logger.error("Error processing LoanCreated event:", err);
+        addLog("error", `Error processing LoanCreated: ${err.message || err}`);
       }
     }
-  } catch (err) {
+  } catch (err: any) {
     logger.error("Error querying LoanCreated events:", err);
+    addLog("error", `Error querying LoanCreated: ${err.message || err}`);
   }
 
   // ── 4. LoanRepaid ──────────────────────────────────────────────────────────
@@ -123,18 +158,22 @@ async function pollEvents(fromBlock: number, toBlock: number) {
     for (const raw of events) {
       const e = raw as ethers.EventLog;
       const [loanId] = e.args;
-      logger.info(`Event: LoanRepaid detected for loan #${loanId}`);
+      const msg = `Event: [LoanRepaid] | Method: [repayLoan] | Loan ID: #${loanId} | Tx: ${e.transactionHash.slice(0, 18)}...`;
+      logger.info(msg);
+      addLog("info", msg);
       try {
         await prisma.lendingLoan.updateMany({
           where: { loanId: Number(loanId) },
           data: { isOpen: false }
         });
-      } catch (err) {
+      } catch (err: any) {
         logger.error("Error processing LoanRepaid event:", err);
+        addLog("error", `Error processing LoanRepaid: ${err.message || err}`);
       }
     }
-  } catch (err) {
+  } catch (err: any) {
     logger.error("Error querying LoanRepaid events:", err);
+    addLog("error", `Error querying LoanRepaid: ${err.message || err}`);
   }
 
   // ── 5. LeveragedSpotOpened ─────────────────────────────────────────────────
@@ -147,7 +186,9 @@ async function pollEvents(fromBlock: number, toBlock: number) {
     for (const raw of events) {
       const e = raw as ethers.EventLog;
       const [positionId, userAddress, targetAsset, leverage] = e.args;
-      logger.info(`Event: LeveragedSpotOpened detected for position #${positionId}`);
+      const msg = `Event: [LeveragedSpotOpened] | Method: [openLeveragedSpot] | Position ID: #${positionId} | Tx: ${e.transactionHash.slice(0, 18)}... | User: ${userAddress.slice(0, 8)}... | Asset: ${targetAsset.slice(0, 8)}... | Leverage: ${leverage}x`;
+      logger.info(msg);
+      addLog("info", msg);
       try {
         const dbUser = await prisma.user.findUnique({ where: { address: userAddress.toLowerCase() } });
         if (dbUser) {
@@ -166,25 +207,32 @@ async function pollEvents(fromBlock: number, toBlock: number) {
             update: { isOpen: true }
           });
         }
-      } catch (err) {
+      } catch (err: any) {
         logger.error("Error processing LeveragedSpotOpened event:", err);
+        addLog("error", `Error processing LeveragedSpotOpened: ${err.message || err}`);
       }
     }
-  } catch (err) {
+  } catch (err: any) {
     logger.error("Error querying LeveragedSpotOpened events:", err);
+    addLog("error", `Error querying LeveragedSpotOpened: ${err.message || err}`);
   }
 }
 
 export async function startEventIndexer() {
   logger.info("Initializing blockchain event listener indexing pipelines...");
+  addLog("info", "Initializing blockchain event listener indexing pipelines...");
 
   // Fetch the latest block to start polling from
   let lastProcessedBlock: number;
   try {
     lastProcessedBlock = await blockchainService.provider.getBlockNumber();
     logger.info(`Event indexer starting from block #${lastProcessedBlock}`);
-  } catch (err) {
+    addLog("info", `Event indexer starting from block #${lastProcessedBlock}`);
+    indexerStatus.lastProcessedBlock = lastProcessedBlock;
+    indexerStatus.latestBlock = lastProcessedBlock;
+  } catch (err: any) {
     logger.error("Could not fetch current block number; event indexer will retry:", err);
+    addLog("warn", `Could not fetch current block number; event indexer will retry: ${err.message || err}`);
     lastProcessedBlock = 0;
   }
 
@@ -192,12 +240,41 @@ export async function startEventIndexer() {
   setInterval(async () => {
     try {
       const latestBlock = await blockchainService.provider.getBlockNumber();
+      indexerStatus.latestBlock = latestBlock;
+      indexerStatus.lastPollTime = new Date().toISOString();
+
       if (latestBlock <= lastProcessedBlock) return; // no new blocks
 
+      addLog("info", `Polling block range: #${lastProcessedBlock + 1} to #${latestBlock}`);
       await pollEvents(lastProcessedBlock + 1, latestBlock);
       lastProcessedBlock = latestBlock;
-    } catch (err) {
+      indexerStatus.lastProcessedBlock = lastProcessedBlock;
+    } catch (err: any) {
       logger.error("Event indexer poll error:", err);
+      addLog("error", `Event indexer poll error: ${err.message || err}`);
     }
   }, POLL_INTERVAL_MS);
+}
+
+export async function triggerIndexPoll() {
+  indexerStatus.lastPollTime = new Date().toISOString();
+  try {
+    const latestBlock = await blockchainService.provider.getBlockNumber();
+    indexerStatus.latestBlock = latestBlock;
+    
+    if (latestBlock > indexerStatus.lastProcessedBlock) {
+      const from = indexerStatus.lastProcessedBlock + 1;
+      addLog("info", `Manual trigger: Polling blocks #${from} to #${latestBlock}`);
+      await pollEvents(from, latestBlock);
+      indexerStatus.lastProcessedBlock = latestBlock;
+      return { success: true, polled: true, count: latestBlock - from + 1 };
+    } else {
+      addLog("info", `Manual trigger: No new blocks found (current block: #${latestBlock})`);
+      return { success: true, polled: false };
+    }
+  } catch (err: any) {
+    addLog("error", `Manual trigger failed: ${err.message || err}`);
+    logger.error("Manual trigger failed:", err);
+    return { success: false, error: err.message || err };
+  }
 }
