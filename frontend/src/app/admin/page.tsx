@@ -43,6 +43,9 @@ export default function AdminPage() {
   const [proposalTarget, setProposalTarget] = useState(CONTRACT_ADDRESSES.sxadmin);
   const [proposalData, setProposalData] = useState("0x");
   const [proposals, setProposals] = useState<Proposal[]>([]);
+  const [masterDevices, setMasterDevices] = useState<string[]>([]);
+  const [newDeviceAddress, setNewDeviceAddress] = useState("");
+  const [registering, setRegistering] = useState(false);
 
   // Kill switch state (from on-chain via backend)
   const [killSwitchActive, setKillSwitchActive] = useState(false);
@@ -64,6 +67,30 @@ export default function AdminPage() {
     }
   }, []);
 
+  // Fetch registered master devices
+  const loadMasterDevices = useCallback(async () => {
+    try {
+      const provider = new ethers.JsonRpcProvider("https://rpc.hoodi.ethpandaops.io");
+      const contract = new ethers.Contract(CONTRACT_ADDRESSES.sxadmin, CONTRACT_ABIS.sxadmin, provider);
+      const loadedDevices: string[] = [];
+      let idx = 0;
+      while (idx < 20) { // Safety limit
+        try {
+          const device = await contract.masterDevices(BigInt(idx));
+          if (device && device !== ethers.ZeroAddress) {
+            loadedDevices.push(device);
+          }
+          idx++;
+        } catch {
+          break;
+        }
+      }
+      setMasterDevices(loadedDevices);
+    } catch (err) {
+      console.error("Failed to load master devices:", err);
+    }
+  }, []);
+
   // Fetch proposals from SXAdmin on-chain
   const loadProposals = useCallback(async () => {
     try {
@@ -71,6 +98,9 @@ export default function AdminPage() {
       const contract = new ethers.Contract(CONTRACT_ADDRESSES.sxadmin, CONTRACT_ABIS.sxadmin, provider);
       const counter = await contract.proposalCounter();
       const count = Number(counter);
+
+      const adminIface = new ethers.Interface(CONTRACT_ABIS.sxadmin);
+      const registerSelector = adminIface.getFunction("registerMasterDevice")?.selector;
 
       const loaded: Proposal[] = [];
       for (let i = 1; i <= count; i++) {
@@ -86,6 +116,13 @@ export default function AdminPage() {
           label = "Activate Kill Switch";
         } else if (data.toLowerCase().startsWith(DEACTIVATE_SELECTOR.toLowerCase())) {
           label = "Deactivate Kill Switch";
+        } else if (registerSelector && data.toLowerCase().startsWith(registerSelector.toLowerCase())) {
+          try {
+            const decoded = adminIface.decodeFunctionData("registerMasterDevice", data);
+            label = `Register Device: ${decoded[0].substring(0, 8)}...`;
+          } catch {
+            label = "Register Master Device";
+          }
         }
 
         loaded.push({
@@ -105,12 +142,14 @@ export default function AdminPage() {
   useEffect(() => {
     fetchKillSwitchStatus();
     loadProposals();
+    loadMasterDevices();
     const interval = setInterval(() => {
       fetchKillSwitchStatus();
       loadProposals();
+      loadMasterDevices();
     }, 10_000);
     return () => clearInterval(interval);
-  }, [fetchKillSwitchStatus, loadProposals]);
+  }, [fetchKillSwitchStatus, loadProposals, loadMasterDevices]);
 
   /**
    * Emergency Kill Switch flow:
@@ -225,6 +264,64 @@ export default function AdminPage() {
     }
   };
 
+  const handleRegisterDevice = async () => {
+    if (!token) return;
+    if (!ethers.isAddress(newDeviceAddress)) {
+      setError("Please enter a valid Ethereum address.");
+      return;
+    }
+    setRegistering(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const adminIface = new ethers.Interface(CONTRACT_ABIS.sxadmin);
+      const calldata = adminIface.encodeFunctionData("registerMasterDevice", [newDeviceAddress]);
+
+      // Step 1: Create Proposal on-chain
+      const createReceipt = await sendTransaction(
+        CONTRACT_ADDRESSES.sxadmin,
+        CONTRACT_ABIS.sxadmin,
+        "createProposal",
+        [CONTRACT_ADDRESSES.sxadmin, calldata]
+      );
+
+      // Parse the real proposalId from emitted event
+      let proposalId: number | null = null;
+      if (createReceipt?.logs) {
+        for (const log of createReceipt.logs) {
+          try {
+            const parsed = adminIface.parseLog(log);
+            if (parsed?.name === "ProposalCreated") {
+              proposalId = Number(parsed.args.proposalId);
+              break;
+            }
+          } catch {}
+        }
+      }
+      if (proposalId === null) proposalId = proposals.length + 1;
+
+      // Step 2: Auto-approve from the connected master device
+      await sendTransaction(
+        CONTRACT_ADDRESSES.sxadmin,
+        CONTRACT_ABIS.sxadmin,
+        "approveProposal",
+        [BigInt(proposalId)]
+      );
+
+      setSuccess(
+        `MultiSig Proposal #${proposalId} to register new Master Device (${newDeviceAddress}) created and approved (1/${masterDevices.length || 3}). ` +
+        `Remaining master devices must approve this proposal before it can be executed.`
+      );
+      setNewDeviceAddress("");
+      await loadProposals();
+    } catch (err: any) {
+      setError(err?.reason || err?.message || "Failed to create registration proposal");
+    } finally {
+      setRegistering(false);
+    }
+  };
+
   const handleApproveProposal = async (id: number) => {
     if (!token) return;
     setLoading(true);
@@ -257,8 +354,9 @@ export default function AdminPage() {
     const prop = proposals.find(p => p.id === id);
     if (!prop) { setLoading(false); return; }
 
-    if (prop.approvals < 3) {
-      setError("Cannot execute: 3/3 master device approvals required.");
+    const requiredApprovals = masterDevices.length || 3;
+    if (prop.approvals < requiredApprovals) {
+      setError(`Cannot execute: ${requiredApprovals}/${requiredApprovals} master device approvals required.`);
       setLoading(false);
       return;
     }
@@ -399,6 +497,57 @@ export default function AdminPage() {
             )}
           </div>
 
+          {/* ── Master Devices Multisig Signers & Propose Registration ── */}
+          <div className="glass-panel p-6 rounded-2xl border border-white/5 flex flex-col gap-5">
+            <div className="flex items-center gap-2">
+              <Lock size={20} className="text-cyan-400" />
+              <h3 className="font-orbitron font-bold text-base text-white">Master Devices Signers</h3>
+            </div>
+            
+            <p className="text-xs text-slate-400">
+              Registered master device wallets authorized to sign governance proposals on-chain:
+            </p>
+
+            <div className="flex flex-col gap-2 bg-[#05060f]/60 p-3.5 rounded-xl border border-white/5">
+              <label className="text-[10px] text-slate-500 uppercase font-orbitron tracking-wider">Registered Signers ({masterDevices.length})</label>
+              {masterDevices.length === 0 ? (
+                <span className="text-xs text-slate-500 italic">No master devices loaded...</span>
+              ) : (
+                <div className="flex flex-col gap-1.5 font-mono text-[10px] text-slate-300">
+                  {masterDevices.map((dev, idx) => (
+                    <div key={dev} className="flex justify-between items-center bg-white/5 py-1.5 px-2.5 rounded border border-white/5">
+                      <span className="truncate max-w-[240px]" title={dev}>{dev}</span>
+                      <span className="text-[9px] text-cyan-400 font-orbitron font-semibold">Device #{idx + 1}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label className="text-[10px] text-slate-500 uppercase font-orbitron tracking-wider">Register Master Device via Proposal</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newDeviceAddress}
+                  onChange={(e) => setNewDeviceAddress(e.target.value)}
+                  placeholder="0x... (New Device Wallet Address)"
+                  className="flex-1 bg-[#05060f] border border-white/5 rounded-xl py-3 px-4 text-xs font-mono text-white focus:outline-none focus:border-cyan-400/50"
+                />
+                <button
+                  onClick={handleRegisterDevice}
+                  disabled={registering || !token}
+                  className="px-4 rounded-xl bg-cyan-500/10 border border-cyan-500/25 hover:bg-cyan-500/20 text-cyan-400 font-orbitron font-bold text-xs cursor-pointer disabled:opacity-50 animate-pulse"
+                >
+                  {registering ? "PROPOSING..." : "PROPOSE"}
+                </button>
+              </div>
+              <p className="text-[10px] text-slate-500 leading-normal">
+                Registering a new device requires creating a governance proposal. This proposal must be signed and approved by the other master devices before executing.
+              </p>
+            </div>
+          </div>
+
           {/* ── Proposal Form ── */}
           <div className="glass-panel p-6 rounded-2xl border border-white/5 flex flex-col gap-5">
             <div className="flex items-center gap-2">
@@ -483,7 +632,7 @@ export default function AdminPage() {
               <span className="text-[10px] text-slate-500 font-mono">{proposals.length} proposal{proposals.length !== 1 ? "s" : ""}</span>
             </div>
             <p className="text-xs text-slate-400">
-              Consensus requires <span className="text-cyan-400 font-bold">3/3</span> master device approvals before execution.
+              Consensus requires <span className="text-cyan-400 font-bold">{masterDevices.length || 3}/{masterDevices.length || 3}</span> master device approvals before execution.
             </p>
 
             {proposals.length === 0 ? (
@@ -499,7 +648,7 @@ export default function AdminPage() {
                     className={`bg-white/5 p-4 rounded-xl border flex flex-col gap-3 transition-all ${
                       prop.executed
                         ? "border-emerald-500/20 opacity-60"
-                        : prop.approvals >= 3
+                        : prop.approvals >= (masterDevices.length || 3)
                         ? "border-cyan-500/20"
                         : "border-white/5"
                     }`}
@@ -519,9 +668,9 @@ export default function AdminPage() {
                         </span>
                       </div>
                       <span className={`text-xs font-orbitron font-bold ${
-                        prop.approvals >= 3 ? "text-emerald-400" : "text-cyan-400"
+                        prop.approvals >= (masterDevices.length || 3) ? "text-emerald-400" : "text-cyan-400"
                       }`}>
-                        {prop.approvals}/3 APPROVED
+                        {prop.approvals}/{masterDevices.length || 3} APPROVED
                       </span>
                     </div>
 
@@ -529,9 +678,9 @@ export default function AdminPage() {
                     <div className="h-1 rounded-full bg-white/5 overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all ${
-                          prop.approvals >= 3 ? "bg-emerald-400" : "bg-cyan-400"
+                          prop.approvals >= (masterDevices.length || 3) ? "bg-emerald-400" : "bg-cyan-400"
                         }`}
-                        style={{ width: `${(prop.approvals / 3) * 100}%` }}
+                        style={{ width: `${(prop.approvals / (masterDevices.length || 3)) * 100}%` }}
                       />
                     </div>
 
@@ -544,7 +693,7 @@ export default function AdminPage() {
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleApproveProposal(prop.id)}
-                          disabled={loading || prop.approvals >= 3}
+                          disabled={loading || prop.approvals >= (masterDevices.length || 3)}
                           className="px-3 py-1.5 rounded bg-white/5 border border-white/5 text-[10px] font-bold font-orbitron text-slate-300 hover:bg-white/10 transition-all disabled:opacity-50 flex items-center gap-1"
                         >
                           <Clock size={10} />
@@ -552,7 +701,7 @@ export default function AdminPage() {
                         </button>
                         <button
                           onClick={() => handleExecuteProposal(prop.id)}
-                          disabled={loading || prop.approvals < 3}
+                          disabled={loading || prop.approvals < (masterDevices.length || 3)}
                           className="px-3 py-1.5 rounded bg-cyan-500/10 border border-cyan-500/20 text-[10px] font-bold font-orbitron text-cyan-400 hover:bg-cyan-500/20 transition-all disabled:opacity-50 flex items-center gap-1"
                         >
                           <Zap size={10} />

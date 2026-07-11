@@ -1,0 +1,472 @@
+[
+  {
+    "blockNumber": 3192010,
+    "transactionHash": "0x74782d706572702d310000000000000000000000000000000000000000000000",
+    "eventName": "PerpetualPositionOpened",
+    "contractAddress": "0x44087077C55fD0bEa8DA21280713A4449cCDe3E6",
+    "args": {
+      "positionId": 1001,
+      "user": "0x1034aad10ef61534ea4df59cd040b3e4418c5e78",
+      "asset": "0x7ede77f55c8d6ce1c7cb8b501a5f57fffe236234",
+      "leverage": 3,
+      "margin": 50,
+      "isLong": false,
+      "isCross": true,
+      "entryPrice": 1
+    },
+    "timestamp": "2026-07-11T11:30:40.216Z"
+  },
+  {
+    "blockNumber": 3192020,
+    "transactionHash": "0x74782d706572702d320000000000000000000000000000000000000000000000",
+    "eventName": "PerpetualPositionOpened",
+    "contractAddress": "0x44087077C55fD0bEa8DA21280713A4449cCDe3E6",
+    "args": {
+      "positionId": 1002,
+      "user": "0x1034aad10ef61534ea4df59cd040b3e4418c5e78",
+      "asset": "0x7ede77f55c8d6ce1c7cb8b501a5f57fffe236234",
+      "leverage": 4,
+      "margin": 100,
+      "isLong": true,
+      "isCross": true,
+      "entryPrice": 1
+    },
+    "timestamp": "2026-07-11T11:31:40.220Z"
+  },
+  {
+    "blockNumber": 3192030,
+    "transactionHash": "0x74782d706572702d330000000000000000000000000000000000000000000000",
+    "eventName": "PerpetualPositionOpened",
+    "contractAddress": "0x44087077C55fD0bEa8DA21280713A4449cCDe3E6",
+    "args": {
+      "positionId": 1003,
+      "user": "0x1034aad10ef61534ea4df59cd040b3e4418c5e78",
+      "asset": "0x7ede77f55c8d6ce1c7cb8b501a5f57fffe236234",
+      "leverage": 5,
+      "margin": 150,
+      "isLong": false,
+      "isCross": true,
+      "entryPrice": 1
+    },
+    "timestamp": "2026-07-11T11:32:40.231Z"
+  },
+  {
+    "blockNumber": 3192040,
+    "transactionHash": "0x74782d706572702d340000000000000000000000000000000000000000000000",
+    "eventName": "PerpetualPositionOpened",
+    "contractAddress": "0x44087077C55fD0bEa8DA21280713A4449cCDe3E6",
+    "args": {
+      "positionId": 1004,
+      "user": "0x1034aad10ef61534ea4df59cd040b3e4418c5e78",
+      "asset": "0x7ede77f55c8d6ce1c7cb8b501a5f57fffe236234",
+      "leverage": 6,
+      "margin": 200,
+      "isLong": true,
+      "isCross": true,
+      "entryPrice": 1
+    },
+    "timestamp": "2026-07-11T11:33:40.235Z"
+  },
+  {
+    "blockNumber": 3192050,
+    "transactionHash": "0x74782d706572702d350000000000000000000000000000000000000000000000",
+    "eventName": "PerpetualPositionOpened",
+    "contractAddress": "0x44087077C55fD0bEa8DA21280713A4449cCDe3E6",
+    "args": {
+      "positionId": 1005,
+      "user": "0x1034aad10ef61534ea4df59cd040b3e4418c5e78",
+      "asset": "0x7ede77f55c8d6ce1c7cb8b501a5f57fffe236234",
+      "leverage": 7,
+      "margin": 250,
+      "isLong": false,
+      "isCross": true,
+      "entryPrice": 1
+    },
+    "timestamp": "2026-07-11T11:34:40.239Z"
+  },
+  {
+    "blockNumber": 3192060,
+    "transactionHash": "0x74782d706572702d360000000000000000000000000000000000000000000000",
+    "eventName": "PerpetualPositionOpened",
+    "contractAddress": "0x44087077C55fD0bEa8DA21280713A4449cCDe3E6",
+    "args": {
+      "positionId": 1006,
+      "user": "0x1034aad10ef61534ea4df59cd040b3e4418c5e78",
+      "asset": "0x7ede77f55c8d6ce1c7cb8b501a5f57fffe236234",
+      "leverage": 8,
+      "margin": 300,
+      "isLong": true,
+      "isCross": true,
+      "entryPrice": 1
+    },
+    "timestamp": "2026-07-11T11:35:40.242Z"
+  },
+  {
+    "blockNumber": 3192070,
+    "transactionHash": "0x74782d706572702d370000000000000000000000000000000000000000000000",
+    "eventName": "PerpetualPositionOpened",
+    "contractAddress": "0x44087077C55fD0bEa8DA21280713A4449cCDe3E6",
+    "args": {
+      "positionId": 1007,
+      "user": "0x1034aad10ef61534ea4df59cd040b3e4418c5e78",
+      "asset": "0x7ede77f55c8d6ce1c7cb8b501a5f57fffe236234",
+      "leverage": 9,
+      "margin": 350,
+      "isLong": false,
+      "isCross": true,
+      "entryPrice": 1
+    },
+    "timestamp": "2026-07-11T11:36:40.246Z"
+  },
+  {
+    "blockNumber": 3192080,
+    "transactionHash": "0x74782d706572702d380000000000000000000000000000000000000000000000",
+    "eventName": "PerpetualPositionOpened",
+    "contractAddress": "0x44087077C55fD0bEa8DA21280713A4449cCDe3E6",
+    "args": {
+      "positionId": 1008,
+      "user": "0x1034aad10ef61534ea4df59cd040b3e4418c5e78",
+      "asset": "0x7ede77f55c8d6ce1c7cb8b501a5f57fffe236234",
+      "leverage": 10,
+      "margin": 400,
+      "isLong": true,
+      "isCross": true,
+      "entryPrice": 1
+    },
+    "timestamp": "2026-07-11T11:37:40.249Z"
+  },
+  {
+    "blockNumber": 3192090,
+    "transactionHash": "0x74782d706572702d390000000000000000000000000000000000000000000000",
+    "eventName": "PerpetualPositionOpened",
+    "contractAddress": "0x44087077C55fD0bEa8DA21280713A4449cCDe3E6",
+    "args": {
+      "positionId": 1009,
+      "user": "0x1034aad10ef61534ea4df59cd040b3e4418c5e78",
+      "asset": "0x7ede77f55c8d6ce1c7cb8b501a5f57fffe236234",
+      "leverage": 2,
+      "margin": 450,
+      "isLong": false,
+      "isCross": true,
+      "entryPrice": 1
+    },
+    "timestamp": "2026-07-11T11:38:40.254Z"
+  },
+  {
+    "blockNumber": 3192100,
+    "transactionHash": "0x74782d706572702d313000000000000000000000000000000000000000000000",
+    "eventName": "PerpetualPositionOpened",
+    "contractAddress": "0x44087077C55fD0bEa8DA21280713A4449cCDe3E6",
+    "args": {
+      "positionId": 1010,
+      "user": "0x1034aad10ef61534ea4df59cd040b3e4418c5e78",
+      "asset": "0x7ede77f55c8d6ce1c7cb8b501a5f57fffe236234",
+      "leverage": 3,
+      "margin": 500,
+      "isLong": true,
+      "isCross": true,
+      "entryPrice": 1
+    },
+    "timestamp": "2026-07-11T11:39:40.260Z"
+  },
+  {
+    "blockNumber": 3192110,
+    "transactionHash": "0x74782d6c6f616e2d310000000000000000000000000000000000000000000000",
+    "eventName": "LoanCreated",
+    "contractAddress": "0x8c1Dfa85296d09727d1dFb875d6d89a91060C735",
+    "args": {
+      "loanId": 2001,
+      "user": "0x1034aad10ef61534ea4df59cd040b3e4418c5e78",
+      "borrowAsset": "0x7ede77f55c8d6ce1c7cb8b501a5f57fffe236234",
+      "borrowAmount": 100,
+      "collateralAsset": "0x7ede77f55c8d6ce1c7cb8b501a5f57fffe236234",
+      "collateralAmount": 300
+    },
+    "timestamp": "2026-07-11T11:40:40.264Z"
+  },
+  {
+    "blockNumber": 3192120,
+    "transactionHash": "0x74782d6c6f616e2d320000000000000000000000000000000000000000000000",
+    "eventName": "LoanCreated",
+    "contractAddress": "0x8c1Dfa85296d09727d1dFb875d6d89a91060C735",
+    "args": {
+      "loanId": 2002,
+      "user": "0x1034aad10ef61534ea4df59cd040b3e4418c5e78",
+      "borrowAsset": "0x7ede77f55c8d6ce1c7cb8b501a5f57fffe236234",
+      "borrowAmount": 200,
+      "collateralAsset": "0x7ede77f55c8d6ce1c7cb8b501a5f57fffe236234",
+      "collateralAmount": 600
+    },
+    "timestamp": "2026-07-11T11:41:40.269Z"
+  },
+  {
+    "blockNumber": 3192130,
+    "transactionHash": "0x74782d6c6f616e2d330000000000000000000000000000000000000000000000",
+    "eventName": "LoanCreated",
+    "contractAddress": "0x8c1Dfa85296d09727d1dFb875d6d89a91060C735",
+    "args": {
+      "loanId": 2003,
+      "user": "0x1034aad10ef61534ea4df59cd040b3e4418c5e78",
+      "borrowAsset": "0x7ede77f55c8d6ce1c7cb8b501a5f57fffe236234",
+      "borrowAmount": 300,
+      "collateralAsset": "0x7ede77f55c8d6ce1c7cb8b501a5f57fffe236234",
+      "collateralAmount": 900
+    },
+    "timestamp": "2026-07-11T11:42:40.272Z"
+  },
+  {
+    "blockNumber": 3192140,
+    "transactionHash": "0x74782d6c6f616e2d340000000000000000000000000000000000000000000000",
+    "eventName": "LoanCreated",
+    "contractAddress": "0x8c1Dfa85296d09727d1dFb875d6d89a91060C735",
+    "args": {
+      "loanId": 2004,
+      "user": "0x1034aad10ef61534ea4df59cd040b3e4418c5e78",
+      "borrowAsset": "0x7ede77f55c8d6ce1c7cb8b501a5f57fffe236234",
+      "borrowAmount": 400,
+      "collateralAsset": "0x7ede77f55c8d6ce1c7cb8b501a5f57fffe236234",
+      "collateralAmount": 1200
+    },
+    "timestamp": "2026-07-11T11:43:40.276Z"
+  },
+  {
+    "blockNumber": 3192150,
+    "transactionHash": "0x74782d6c6f616e2d350000000000000000000000000000000000000000000000",
+    "eventName": "LoanCreated",
+    "contractAddress": "0x8c1Dfa85296d09727d1dFb875d6d89a91060C735",
+    "args": {
+      "loanId": 2005,
+      "user": "0x1034aad10ef61534ea4df59cd040b3e4418c5e78",
+      "borrowAsset": "0x7ede77f55c8d6ce1c7cb8b501a5f57fffe236234",
+      "borrowAmount": 500,
+      "collateralAsset": "0x7ede77f55c8d6ce1c7cb8b501a5f57fffe236234",
+      "collateralAmount": 1500
+    },
+    "timestamp": "2026-07-11T11:44:40.279Z"
+  },
+  {
+    "blockNumber": 3192160,
+    "transactionHash": "0x74782d6c6f616e2d360000000000000000000000000000000000000000000000",
+    "eventName": "LoanCreated",
+    "contractAddress": "0x8c1Dfa85296d09727d1dFb875d6d89a91060C735",
+    "args": {
+      "loanId": 2006,
+      "user": "0x1034aad10ef61534ea4df59cd040b3e4418c5e78",
+      "borrowAsset": "0x7ede77f55c8d6ce1c7cb8b501a5f57fffe236234",
+      "borrowAmount": 600,
+      "collateralAsset": "0x7ede77f55c8d6ce1c7cb8b501a5f57fffe236234",
+      "collateralAmount": 1800
+    },
+    "timestamp": "2026-07-11T11:45:40.283Z"
+  },
+  {
+    "blockNumber": 3192170,
+    "transactionHash": "0x74782d6c6f616e2d370000000000000000000000000000000000000000000000",
+    "eventName": "LoanCreated",
+    "contractAddress": "0x8c1Dfa85296d09727d1dFb875d6d89a91060C735",
+    "args": {
+      "loanId": 2007,
+      "user": "0x1034aad10ef61534ea4df59cd040b3e4418c5e78",
+      "borrowAsset": "0x7ede77f55c8d6ce1c7cb8b501a5f57fffe236234",
+      "borrowAmount": 700,
+      "collateralAsset": "0x7ede77f55c8d6ce1c7cb8b501a5f57fffe236234",
+      "collateralAmount": 2100
+    },
+    "timestamp": "2026-07-11T11:46:40.287Z"
+  },
+  {
+    "blockNumber": 3192180,
+    "transactionHash": "0x74782d6c6f616e2d380000000000000000000000000000000000000000000000",
+    "eventName": "LoanCreated",
+    "contractAddress": "0x8c1Dfa85296d09727d1dFb875d6d89a91060C735",
+    "args": {
+      "loanId": 2008,
+      "user": "0x1034aad10ef61534ea4df59cd040b3e4418c5e78",
+      "borrowAsset": "0x7ede77f55c8d6ce1c7cb8b501a5f57fffe236234",
+      "borrowAmount": 800,
+      "collateralAsset": "0x7ede77f55c8d6ce1c7cb8b501a5f57fffe236234",
+      "collateralAmount": 2400
+    },
+    "timestamp": "2026-07-11T11:47:40.291Z"
+  },
+  {
+    "blockNumber": 3192190,
+    "transactionHash": "0x74782d6c6f616e2d390000000000000000000000000000000000000000000000",
+    "eventName": "LoanCreated",
+    "contractAddress": "0x8c1Dfa85296d09727d1dFb875d6d89a91060C735",
+    "args": {
+      "loanId": 2009,
+      "user": "0x1034aad10ef61534ea4df59cd040b3e4418c5e78",
+      "borrowAsset": "0x7ede77f55c8d6ce1c7cb8b501a5f57fffe236234",
+      "borrowAmount": 900,
+      "collateralAsset": "0x7ede77f55c8d6ce1c7cb8b501a5f57fffe236234",
+      "collateralAmount": 2700
+    },
+    "timestamp": "2026-07-11T11:48:40.294Z"
+  },
+  {
+    "blockNumber": 3192200,
+    "transactionHash": "0x74782d6c6f616e2d313000000000000000000000000000000000000000000000",
+    "eventName": "LoanCreated",
+    "contractAddress": "0x8c1Dfa85296d09727d1dFb875d6d89a91060C735",
+    "args": {
+      "loanId": 2010,
+      "user": "0x1034aad10ef61534ea4df59cd040b3e4418c5e78",
+      "borrowAsset": "0x7ede77f55c8d6ce1c7cb8b501a5f57fffe236234",
+      "borrowAmount": 1000,
+      "collateralAsset": "0x7ede77f55c8d6ce1c7cb8b501a5f57fffe236234",
+      "collateralAmount": 3000
+    },
+    "timestamp": "2026-07-11T11:49:40.298Z"
+  },
+  {
+    "blockNumber": 3192210,
+    "transactionHash": "0x74782d73706f742d310000000000000000000000000000000000000000000000",
+    "eventName": "LeveragedSpotOpened",
+    "contractAddress": "0x4CBe9bb948E25DDB6AcaB1331a6567B6EdA9B6Fd",
+    "args": {
+      "positionId": 3001,
+      "user": "0x1034aad10ef61534ea4df59cd040b3e4418c5e78",
+      "targetAsset": "0x7ede77f55c8d6ce1c7cb8b501a5f57fffe236234",
+      "leverage": 3,
+      "size": 450,
+      "isPending": false
+    },
+    "timestamp": "2026-07-11T11:50:40.303Z"
+  },
+  {
+    "blockNumber": 3192220,
+    "transactionHash": "0x74782d73706f742d320000000000000000000000000000000000000000000000",
+    "eventName": "LeveragedSpotOpened",
+    "contractAddress": "0x4CBe9bb948E25DDB6AcaB1331a6567B6EdA9B6Fd",
+    "args": {
+      "positionId": 3002,
+      "user": "0x1034aad10ef61534ea4df59cd040b3e4418c5e78",
+      "targetAsset": "0x7ede77f55c8d6ce1c7cb8b501a5f57fffe236234",
+      "leverage": 3,
+      "size": 900,
+      "isPending": false
+    },
+    "timestamp": "2026-07-11T11:51:40.306Z"
+  },
+  {
+    "blockNumber": 3192230,
+    "transactionHash": "0x74782d73706f742d330000000000000000000000000000000000000000000000",
+    "eventName": "LeveragedSpotOpened",
+    "contractAddress": "0x4CBe9bb948E25DDB6AcaB1331a6567B6EdA9B6Fd",
+    "args": {
+      "positionId": 3003,
+      "user": "0x1034aad10ef61534ea4df59cd040b3e4418c5e78",
+      "targetAsset": "0x7ede77f55c8d6ce1c7cb8b501a5f57fffe236234",
+      "leverage": 3,
+      "size": 1350,
+      "isPending": false
+    },
+    "timestamp": "2026-07-11T11:52:40.310Z"
+  },
+  {
+    "blockNumber": 3192240,
+    "transactionHash": "0x74782d73706f742d340000000000000000000000000000000000000000000000",
+    "eventName": "LeveragedSpotOpened",
+    "contractAddress": "0x4CBe9bb948E25DDB6AcaB1331a6567B6EdA9B6Fd",
+    "args": {
+      "positionId": 3004,
+      "user": "0x1034aad10ef61534ea4df59cd040b3e4418c5e78",
+      "targetAsset": "0x7ede77f55c8d6ce1c7cb8b501a5f57fffe236234",
+      "leverage": 3,
+      "size": 1800,
+      "isPending": false
+    },
+    "timestamp": "2026-07-11T11:53:40.316Z"
+  },
+  {
+    "blockNumber": 3192250,
+    "transactionHash": "0x74782d73706f742d350000000000000000000000000000000000000000000000",
+    "eventName": "LeveragedSpotOpened",
+    "contractAddress": "0x4CBe9bb948E25DDB6AcaB1331a6567B6EdA9B6Fd",
+    "args": {
+      "positionId": 3005,
+      "user": "0x1034aad10ef61534ea4df59cd040b3e4418c5e78",
+      "targetAsset": "0x7ede77f55c8d6ce1c7cb8b501a5f57fffe236234",
+      "leverage": 3,
+      "size": 2250,
+      "isPending": false
+    },
+    "timestamp": "2026-07-11T11:54:40.320Z"
+  },
+  {
+    "blockNumber": 3192260,
+    "transactionHash": "0x74782d73706f742d360000000000000000000000000000000000000000000000",
+    "eventName": "LeveragedSpotOpened",
+    "contractAddress": "0x4CBe9bb948E25DDB6AcaB1331a6567B6EdA9B6Fd",
+    "args": {
+      "positionId": 3006,
+      "user": "0x1034aad10ef61534ea4df59cd040b3e4418c5e78",
+      "targetAsset": "0x7ede77f55c8d6ce1c7cb8b501a5f57fffe236234",
+      "leverage": 3,
+      "size": 2700,
+      "isPending": false
+    },
+    "timestamp": "2026-07-11T11:55:40.324Z"
+  },
+  {
+    "blockNumber": 3192270,
+    "transactionHash": "0x74782d73706f742d370000000000000000000000000000000000000000000000",
+    "eventName": "LeveragedSpotOpened",
+    "contractAddress": "0x4CBe9bb948E25DDB6AcaB1331a6567B6EdA9B6Fd",
+    "args": {
+      "positionId": 3007,
+      "user": "0x1034aad10ef61534ea4df59cd040b3e4418c5e78",
+      "targetAsset": "0x7ede77f55c8d6ce1c7cb8b501a5f57fffe236234",
+      "leverage": 3,
+      "size": 3150,
+      "isPending": false
+    },
+    "timestamp": "2026-07-11T11:56:40.327Z"
+  },
+  {
+    "blockNumber": 3192280,
+    "transactionHash": "0x74782d73706f742d380000000000000000000000000000000000000000000000",
+    "eventName": "LeveragedSpotOpened",
+    "contractAddress": "0x4CBe9bb948E25DDB6AcaB1331a6567B6EdA9B6Fd",
+    "args": {
+      "positionId": 3008,
+      "user": "0x1034aad10ef61534ea4df59cd040b3e4418c5e78",
+      "targetAsset": "0x7ede77f55c8d6ce1c7cb8b501a5f57fffe236234",
+      "leverage": 3,
+      "size": 3600,
+      "isPending": false
+    },
+    "timestamp": "2026-07-11T11:57:40.331Z"
+  },
+  {
+    "blockNumber": 3192290,
+    "transactionHash": "0x74782d73706f742d390000000000000000000000000000000000000000000000",
+    "eventName": "LeveragedSpotOpened",
+    "contractAddress": "0x4CBe9bb948E25DDB6AcaB1331a6567B6EdA9B6Fd",
+    "args": {
+      "positionId": 3009,
+      "user": "0x1034aad10ef61534ea4df59cd040b3e4418c5e78",
+      "targetAsset": "0x7ede77f55c8d6ce1c7cb8b501a5f57fffe236234",
+      "leverage": 3,
+      "size": 4050,
+      "isPending": false
+    },
+    "timestamp": "2026-07-11T11:58:40.335Z"
+  },
+  {
+    "blockNumber": 3192300,
+    "transactionHash": "0x74782d73706f742d313000000000000000000000000000000000000000000000",
+    "eventName": "LeveragedSpotOpened",
+    "contractAddress": "0x4CBe9bb948E25DDB6AcaB1331a6567B6EdA9B6Fd",
+    "args": {
+      "positionId": 3010,
+      "user": "0x1034aad10ef61534ea4df59cd040b3e4418c5e78",
+      "targetAsset": "0x7ede77f55c8d6ce1c7cb8b501a5f57fffe236234",
+      "leverage": 3,
+      "size": 4500,
+      "isPending": false
+    },
+    "timestamp": "2026-07-11T11:59:40.338Z"
+  }
+]

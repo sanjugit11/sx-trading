@@ -51,4 +51,12 @@ router.post("/indexer/trigger", apiController.triggerIndexerPoll);
 router.get("/security/logs", apiController.getSecurityLogs);
 router.post("/security/log", apiController.createSecurityLog);
 
+// OneStep KYC endpoints
+router.post("/kyc/verify-onestep", authenticateToken, apiController.verifyOneStepKyc);
+router.post("/kyc/reset", authenticateToken, apiController.resetKyc);
+
+// SXR Rewards endpoints
+router.get("/rewards", authenticateToken, apiController.getRewards);
+router.post("/rewards/claim", authenticateToken, apiController.claimRewards);
+
 export default router;

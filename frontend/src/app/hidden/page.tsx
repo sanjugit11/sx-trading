@@ -21,8 +21,10 @@ export default function HiddenOrdersPage() {
   const [salt, setSalt] = useState("123456789abcdef");
   const [generatedPayload, setGeneratedPayload] = useState<{ commitmentHash: string; executionDetails: string } | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [commitError, setCommitError] = useState<string | null>(null);
+  const [commitSuccess, setCommitSuccess] = useState<string | null>(null);
+  const [execError, setExecError] = useState<string | null>(null);
+  const [execSuccess, setExecSuccess] = useState<string | null>(null);
 
   const fetchProfile = useCallback(async () => {
     if (!token) return;
@@ -39,8 +41,10 @@ export default function HiddenOrdersPage() {
   }, [token]);
 
   useEffect(() => {
-    fetchProfile();
-  }, [fetchProfile]);
+    if (token) {
+      fetchProfile();
+    }
+  }, [token, fetchProfile]);
 
   const buildHiddenOrderPayload = () => {
     const orderTypeValue = orderType === "HOBL" ? 0 : orderType === "HOPL" ? 1 : 2;
@@ -71,18 +75,19 @@ export default function HiddenOrdersPage() {
     setCommitment(payload.commitmentHash);
     setExecutionDetails(payload.executionDetails);
     setProofVerified(true);
-    setSuccess("Mock ZK parameters and matching reveal payload generated successfully!");
+    setCommitError(null);
+    setCommitSuccess("Mock ZK parameters and matching reveal payload generated successfully!");
   };
 
   const handlePlaceOrder = async () => {
     if (!token) return;
     if (!commitment) {
-      setError("Please generate or enter a commitment hash first.");
+      setCommitError("Please generate or enter a commitment hash first.");
       return;
     }
     setLoading(true);
-    setError(null);
-    setSuccess(null);
+    setCommitError(null);
+    setCommitSuccess(null);
 
     try {
       setProofVerified(Boolean(proof && proof.length > 10));
@@ -131,10 +136,10 @@ export default function HiddenOrdersPage() {
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setSuccess(`Hidden order commitment placed on-chain! Order ID is #${latestOrderId}`);
+      setCommitSuccess(`Hidden order commitment placed on-chain! Order ID is #${latestOrderId}`);
       await fetchProfile();
     } catch (err: any) {
-      setError(err.message || "Failed to commit order on-chain");
+      setCommitError(err.message || "Failed to commit order on-chain");
     } finally {
       setLoading(false);
     }
@@ -143,12 +148,12 @@ export default function HiddenOrdersPage() {
   const handleExecuteOrder = async () => {
     if (!token) return;
     if (!executionDetails) {
-      setError("Please generate commitment parameters or input execution details.");
+      setExecError("Please generate commitment parameters or input execution details.");
       return;
     }
     setLoading(true);
-    setError(null);
-    setSuccess(null);
+    setExecError(null);
+    setExecSuccess(null);
 
     try {
       setProofVerified(Boolean(execProof && execProof.length > 10));
@@ -163,10 +168,10 @@ export default function HiddenOrdersPage() {
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setSuccess(`Hidden order #${orderId} successfully revealed & matched on-chain by Keeper! Tx: ${res.data.transactionHash.substring(0, 16)}...`);
+      setExecSuccess(`Hidden order #${orderId} successfully revealed & matched on-chain by Keeper! Tx: ${res.data.transactionHash.substring(0, 16)}...`);
       await fetchProfile();
     } catch (err: any) {
-      setError(err.response?.data?.error || err.message || "Reveal matching verification failed.");
+      setExecError(err.response?.data?.error || err.message || "Reveal matching verification failed.");
     } finally {
       setLoading(false);
     }
@@ -214,8 +219,8 @@ export default function HiddenOrdersPage() {
                       setGeneratedPayload(null);
                       setCommitment("");
                       setExecutionDetails("");
-                      setSuccess(null);
-                      setError(null);
+                      setCommitSuccess(null);
+                      setCommitError(null);
                     }}
                     className={`py-2 rounded-lg text-[11px] font-orbitron font-semibold transition-all ${orderType === type ? "bg-cyan-500/10 text-cyan-400 border border-cyan-400/20" : "bg-white/5 text-slate-400 border border-white/5"}`}
                   >
@@ -257,17 +262,17 @@ export default function HiddenOrdersPage() {
               <p className="mt-1 text-[10px] text-slate-500">The contract accepts a non-empty proof payload for HOBL, HOPL, and HOTL commitments.</p>
             </div>
 
-            {error && (
+            {commitError && (
               <div className="bg-rose-500/10 border border-rose-500/25 text-rose-400 text-xs p-3.5 rounded-xl flex items-center gap-2">
                 <AlertTriangle size={16} />
-                <span>{error}</span>
+                <span>{commitError}</span>
               </div>
             )}
 
-            {success && (
+            {commitSuccess && (
               <div className="bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-xs p-3.5 rounded-xl flex items-center gap-2">
                 <ShieldCheck size={16} />
-                <span>{success}</span>
+                <span>{commitSuccess}</span>
               </div>
             )}
 
@@ -320,17 +325,17 @@ export default function HiddenOrdersPage() {
               <p className="mt-1 text-[10px] text-slate-500">Reveal the matching execution payload to verify the hidden order against the on-chain commitment.</p>
             </div>
 
-            {error && (
+            {execError && (
               <div className="bg-rose-500/10 border border-rose-500/25 text-rose-400 text-xs p-3.5 rounded-xl flex items-center gap-2">
                 <AlertTriangle size={16} />
-                <span>{error}</span>
+                <span>{execError}</span>
               </div>
             )}
 
-            {success && (
+            {execSuccess && (
               <div className="bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-xs p-3.5 rounded-xl flex items-center gap-2">
                 <ShieldCheck size={16} />
-                <span>{success}</span>
+                <span>{execSuccess}</span>
               </div>
             )}
 
@@ -420,8 +425,8 @@ export default function HiddenOrdersPage() {
                                 onClick={() => {
                                   setOrderId(ord.orderId);
                                   setExecutionDetails(localData.executionDetails);
-                                  setSuccess("Payload auto-filled! Ready to reveal and execute.");
-                                  setError(null);
+                                  setExecSuccess("Payload auto-filled! Ready to reveal and execute.");
+                                  setExecError(null);
                                 }}
                                 className="px-2.5 py-1 rounded bg-purple-500/10 border border-purple-500/20 text-purple-400 hover:bg-purple-500/20 transition-all font-semibold font-orbitron cursor-pointer"
                               >

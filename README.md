@@ -80,8 +80,12 @@ cd backend
 npm run test
 ```
 *Tests verify SIWE auth signatures, JWT session verification, profile endpoint data, and risk exposure updates.*
-
 ---
+## DATABASE
+npx prisma studio
+npx ts-node scratch_show_tables.ts
+
+
 
 ## 4. Local Deployment & Node Start
 

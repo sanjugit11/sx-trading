@@ -18,7 +18,8 @@ import {
   Server,
   Droplets,
   CheckCircle2,
-  ShieldAlert
+  ShieldAlert,
+  Gift
 } from "lucide-react";
 import axios from "axios";
 import { ethers } from "ethers";
@@ -136,6 +137,7 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({ children }) => {
     { name: "Lending Pool", path: "/lending", icon: Coins },
     { name: "Leveraged Spot", path: "/spot", icon: Layers },
     { name: "Hidden Orders", path: "/hidden", icon: EyeOff },
+    { name: "SXR Rewards", path: "/rewards", icon: Gift },
     { name: "Admin Panel", path: "/admin", icon: ShieldCheck },
     { name: "Security & Compliance", path: "/compliance", icon: ShieldAlert },
     { name: "Event Indexer", path: "/admin/indexer", icon: Server },

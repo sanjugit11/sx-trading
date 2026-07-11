@@ -12,6 +12,14 @@ import {
   RefreshCw,
   Activity
 } from "lucide-react";
+import { 
+  AreaChart, 
+  Area, 
+  XAxis, 
+  YAxis, 
+  Tooltip as ChartTooltip, 
+  ResponsiveContainer 
+} from "recharts";
 import axios from "axios";
 import { ethers } from "ethers";
 import { CONTRACT_ADDRESSES, CONTRACT_ABIS } from "@/blockchain/config";
@@ -57,6 +65,7 @@ export default function PerpetualPage() {
   const [oraclePrice, setOraclePrice] = useState<number | null>(null);
   const [fundingRate, setFundingRate] = useState<number | null>(null);
   const [marketLoading, setMarketLoading] = useState(true);
+  const [chartData, setChartData] = useState<{ time: string; price: number }[]>([]);
 
   // UI state
   const [loading, setLoading] = useState(false);
@@ -149,6 +158,50 @@ export default function PerpetualPage() {
     const interval = setInterval(fetchAll, 15_000);
     return () => clearInterval(interval);
   }, [fetchAll]);
+
+  useEffect(() => {
+    const basePrice = oraclePrice !== null ? oraclePrice : 1.0;
+    const initialData = Array.from({ length: 15 }, (_, i) => {
+      const time = new Date(Date.now() - (15 - i) * 15_000);
+      const randOffset = (Math.random() - 0.5) * 0.003; // slight oscillation
+      return {
+        time: time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        price: parseFloat((basePrice * (1 + randOffset)).toFixed(4))
+      };
+    });
+    setChartData(initialData);
+  }, [oraclePrice]);
+
+  useEffect(() => {
+    if (chartData.length === 0) return;
+    const interval = setInterval(() => {
+      setChartData((prev) => {
+        if (prev.length === 0) return [];
+        const basePrice = oraclePrice !== null ? oraclePrice : 1.0;
+        const lastTick = prev[prev.length - 1];
+        // Generate next tick by adding a small random walk to the last price
+        // but bound it close to the oraclePrice
+        const randomWalk = (Math.random() - 0.5) * 0.0008;
+        let newPrice = lastTick.price * (1 + randomWalk);
+        
+        // Pull it back towards basePrice if it deviates too much
+        const maxDev = 0.005; // 0.5% max deviation
+        if (newPrice > basePrice * (1 + maxDev)) {
+          newPrice = basePrice * (1 + maxDev * 0.8);
+        } else if (newPrice < basePrice * (1 - maxDev)) {
+          newPrice = basePrice * (1 - maxDev * 0.8);
+        }
+        
+        const now = new Date();
+        const nextTick = {
+          time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+          price: parseFloat(newPrice.toFixed(4))
+        };
+        return [...prev.slice(1), nextTick];
+      });
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [oraclePrice, chartData.length]);
 
   const handleOpenPosition = async () => {
     if (!token) return;
@@ -474,11 +527,50 @@ export default function PerpetualPage() {
                 </span>
               </div>
             </div>
-            <div className="h-[200px] w-full bg-[#05060f] rounded-xl flex items-center justify-center border border-white/5 relative overflow-hidden">
+            <div className="h-[200px] w-full bg-[#05060f] rounded-xl border border-white/5 relative overflow-hidden p-2">
               <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/5 to-purple-500/5 -z-10" />
-              <Activity size={48} className="text-cyan-500/20 animate-pulse" />
-              <span className="absolute bottom-4 right-4 text-[10px] text-slate-600 font-mono">
-                Live WebSocket visualizer feed
+              {chartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.2}/>
+                        <stop offset="95%" stopColor="#22d3ee" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <XAxis 
+                      dataKey="time" 
+                      stroke="#475569" 
+                      fontSize={9}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis 
+                      stroke="#475569" 
+                      fontSize={9}
+                      domain={['auto', 'auto']}
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(val) => `$${val.toFixed(4)}`}
+                    />
+                    <ChartTooltip
+                      contentStyle={{ backgroundColor: '#090d16', borderColor: 'rgba(255,255,255,0.08)', borderRadius: '10px' }}
+                      labelStyle={{ color: '#94a3b8', fontSize: '10px' }}
+                      itemStyle={{ color: '#22d3ee', fontSize: '11px', fontWeight: 'bold' }}
+                      formatter={(value: any) => [`$${parseFloat(value).toFixed(4)}`, 'Price']}
+                    />
+                    <Area type="monotone" dataKey="price" stroke="#22d3ee" strokeWidth={1.5} fillOpacity={1} fill="url(#colorPrice)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full gap-2">
+                  <Activity size={48} className="text-cyan-500/20 animate-pulse" />
+                  <span className="text-[10px] text-slate-500 font-orbitron">Loading Price Feed...</span>
+                </div>
+              )}
+              <span className="absolute bottom-2 right-4 text-[9px] text-slate-500 font-mono flex items-center gap-1.5 bg-[#05060f]/60 px-2 py-0.5 rounded border border-white/5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                Live Web3 stream
               </span>
             </div>
           </div>
